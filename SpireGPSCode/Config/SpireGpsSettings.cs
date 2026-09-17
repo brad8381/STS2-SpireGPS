@@ -11,7 +11,7 @@ internal static class SpireGpsSettings
     internal static bool PotionGuardEnabled { get; set; } = true;
     internal static bool RelicTrackerEnabled { get; set; } = true;
     internal static bool SynergyHintsEnabled { get; set; } = true;
-    internal static bool WishlistEnabled { get; set; } = false;
+    internal static bool WishlistEnabled { get; set; } = true;
     internal static bool MultiplayerPingsEnabled { get; set; } = true;
 
     internal static void Apply(string key, object value)
