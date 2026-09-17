@@ -214,7 +214,7 @@ internal partial class RoutePanelLayer : CanvasLayer
             bool isPreferred = preferred?.Index == route.Index;
             bool isSelected = selected?.Index == route.Index;
 
-            string prefix = isSelected ? "▶ " : isPreferred ? "★ " : string.Empty;
+            string prefix = (isSelected ? "▶ " : string.Empty) + (isPreferred ? "★ " : string.Empty);
             var routeButton = new Button
             {
                 Text = $"{prefix}Route {route.Index}",
