@@ -41,7 +41,7 @@ internal static class ModConfigBridge
 
         if (_apiType is null || _entryType is null || _configType is null)
         {
-            MainFile.Logger.Info("ModConfig not detected; using SpireGPS defaults (all modules enabled).");
+            MainFile.Logger.Info("ModConfig not detected; all SpireGPS modules are enabled with built-in defaults.");
             return;
         }
 
@@ -78,13 +78,28 @@ internal static class ModConfigBridge
             Toggle("routePanelEnabled", "Show Route List", true),
             Toggle("highlightSelectedRoute", "Highlight Selected Route", true),
             Toggle("fadeUnselectedRoutes", "Fade Unselected Routes", false),
+            Dropdown("defaultRouteSort", "Default Route Sort", "Preferred",
+                "Preferred", "Route Order", "Monsters", "Unknowns", "Elites", "Shops", "Rest Sites", "Treasures"),
+            Toggle("sortDescending", "Sort Highest First", true),
+
+            Header("Preferred Route"),
+            Toggle("preferredRouteEnabled", "Show Preferred Route", true),
+            Slider("monsterWeight", "Monster Weight", -1f),
+            Slider("unknownWeight", "Unknown (?) Weight", 0f),
+            Slider("eliteWeight", "Elite Weight", 2f),
+            Slider("shopWeight", "Shop Weight", 1f),
+            Slider("restWeight", "Campsite Weight", 2f),
+            Slider("treasureWeight", "Treasure Weight", 1f),
+
             Header("Safety"),
             Toggle("turnGuardEnabled", "Turn Guard", true),
             Toggle("potionGuardEnabled", "Potion Guard", true),
+
             Header("Information"),
             Toggle("relicTrackerEnabled", "Relic Progress", true),
             Toggle("synergyHintsEnabled", "Synergy Hints", true),
             Toggle("wishlistEnabled", "Build Wishlist", true),
+
             Header("Multiplayer"),
             Toggle("multiplayerPingsEnabled", "Multiplayer Pings", true)
         };
@@ -106,13 +121,44 @@ internal static class ModConfigBridge
         Set(e, "Label", label);
         Set(e, "Type", Enum.Parse(_configType!, "Toggle"));
         Set(e, "DefaultValue", defaultValue);
-        Set(e, "OnChanged", new Action<object>(v =>
-        {
-            SpireGpsSettings.Apply(key, v);
-            if (key.StartsWith("route", StringComparison.OrdinalIgnoreCase) || key == "highlightSelectedRoute" || key == "fadeUnselectedRoutes")
-                MainFile.RefreshRoutes();
-        }));
+        Set(e, "OnChanged", new Action<object>(v => ApplyAndRefresh(key, v)));
     });
+
+    private static object Slider(string key, string label, float defaultValue) => Entry(e =>
+    {
+        Set(e, "Key", key);
+        Set(e, "Label", label);
+        Set(e, "Type", Enum.Parse(_configType!, "Slider"));
+        Set(e, "DefaultValue", defaultValue);
+        Set(e, "Min", -10f);
+        Set(e, "Max", 10f);
+        Set(e, "Step", 1f);
+        Set(e, "Format", "F0");
+        Set(e, "Description", "Positive = prefer this room type. Negative = avoid it.");
+        Set(e, "OnChanged", new Action<object>(v => ApplyAndRefresh(key, v)));
+    });
+
+    private static object Dropdown(string key, string label, string defaultValue, params string[] options) => Entry(e =>
+    {
+        Set(e, "Key", key);
+        Set(e, "Label", label);
+        Set(e, "Type", Enum.Parse(_configType!, "Dropdown"));
+        Set(e, "DefaultValue", defaultValue);
+        Set(e, "Options", options);
+        Set(e, "OnChanged", new Action<object>(v => ApplyAndRefresh(key, v)));
+    });
+
+    private static void ApplyAndRefresh(string key, object value)
+    {
+        SpireGpsSettings.Apply(key, value);
+        if (IsRouteSetting(key)) MainFile.RefreshRoutes();
+    }
+
+    private static bool IsRouteSetting(string key)
+        => key.StartsWith("route", StringComparison.OrdinalIgnoreCase)
+           || key.EndsWith("Weight", StringComparison.OrdinalIgnoreCase)
+           || key is "highlightSelectedRoute" or "fadeUnselectedRoutes" or "defaultRouteSort"
+               or "sortDescending" or "preferredRouteEnabled";
 
     private static object Entry(Action<object> configure)
     {
@@ -126,32 +172,42 @@ internal static class ModConfigBridge
 
     private static void LoadSavedValues()
     {
-        foreach (var (key, fallback) in new (string, bool)[]
+        Load("routePlannerEnabled", true);
+        Load("routePanelEnabled", true);
+        Load("highlightSelectedRoute", true);
+        Load("fadeUnselectedRoutes", false);
+        Load("defaultRouteSort", "Preferred");
+        Load("sortDescending", true);
+        Load("preferredRouteEnabled", true);
+        Load("monsterWeight", -1f);
+        Load("unknownWeight", 0f);
+        Load("eliteWeight", 2f);
+        Load("shopWeight", 1f);
+        Load("restWeight", 2f);
+        Load("treasureWeight", 1f);
+        Load("turnGuardEnabled", true);
+        Load("potionGuardEnabled", true);
+        Load("relicTrackerEnabled", true);
+        Load("synergyHintsEnabled", true);
+        Load("wishlistEnabled", true);
+        Load("multiplayerPingsEnabled", true);
+
+        MainFile.RefreshRoutes();
+    }
+
+    private static void Load<T>(string key, T fallback)
+    {
+        try
         {
-            ("routePlannerEnabled", true),
-            ("routePanelEnabled", true),
-            ("highlightSelectedRoute", true),
-            ("fadeUnselectedRoutes", false),
-            ("turnGuardEnabled", true),
-            ("potionGuardEnabled", true),
-            ("relicTrackerEnabled", true),
-            ("synergyHintsEnabled", true),
-            ("wishlistEnabled", true),
-            ("multiplayerPingsEnabled", true)
-        })
+            var getValue = _apiType!.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .First(m => m.Name == "GetValue" && m.IsGenericMethodDefinition)
+                .MakeGenericMethod(typeof(T));
+            var result = getValue.Invoke(null, new object[] { MainFile.ModId, key });
+            SpireGpsSettings.Apply(key, result ?? fallback!);
+        }
+        catch
         {
-            try
-            {
-                var getValue = _apiType!.GetMethods(BindingFlags.Public | BindingFlags.Static)
-                    .First(m => m.Name == "GetValue" && m.IsGenericMethodDefinition)
-                    .MakeGenericMethod(typeof(bool));
-                var value = (bool)(getValue.Invoke(null, new object[] { MainFile.ModId, key }) ?? fallback);
-                SpireGpsSettings.Apply(key, value);
-            }
-            catch
-            {
-                SpireGpsSettings.Apply(key, fallback);
-            }
+            SpireGpsSettings.Apply(key, fallback!);
         }
     }
 }
