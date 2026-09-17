@@ -84,6 +84,7 @@ internal static class ModConfigBridge
 
             Header("Preferred Route"),
             Toggle("preferredRouteEnabled", "Show Preferred Route", true),
+            Toggle("autoHighlightPreferredRoute", "Auto Highlight Preferred Route", true),
             Slider("monsterWeight", "Monster Weight", -1f),
             Slider("unknownWeight", "Unknown (?) Weight", 0f),
             Slider("eliteWeight", "Elite Weight", 2f),
@@ -158,7 +159,7 @@ internal static class ModConfigBridge
         => key.StartsWith("route", StringComparison.OrdinalIgnoreCase)
            || key.EndsWith("Weight", StringComparison.OrdinalIgnoreCase)
            || key is "highlightSelectedRoute" or "fadeUnselectedRoutes" or "defaultRouteSort"
-               or "sortDescending" or "preferredRouteEnabled";
+               or "sortDescending" or "preferredRouteEnabled" or "autoHighlightPreferredRoute";
 
     private static object Entry(Action<object> configure)
     {
@@ -179,6 +180,7 @@ internal static class ModConfigBridge
         Load("defaultRouteSort", "Preferred");
         Load("sortDescending", true);
         Load("preferredRouteEnabled", true);
+        Load("autoHighlightPreferredRoute", true);
         Load("monsterWeight", -1f);
         Load("unknownWeight", 0f);
         Load("eliteWeight", 2f);
