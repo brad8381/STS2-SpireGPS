@@ -21,8 +21,19 @@ internal static class SpireGpsSettings
     internal static float TreasureWeight { get; set; } = 1f;
 
     internal static bool TurnGuardEnabled { get; set; } = true;
+    internal static bool TurnGuardWarnPlayableCards { get; set; } = true;
+    internal static bool TurnGuardWarnEnergy { get; set; } = true;
+    internal static bool TurnGuardWarnLethal { get; set; } = true;
+    internal static bool TurnGuardAutoUnready { get; set; } = true;
+    internal static float TurnGuardConfirmSeconds { get; set; } = 2.5f;
+
     internal static bool PotionGuardEnabled { get; set; } = true;
+    internal static float PotionGuardConfirmSeconds { get; set; } = 2.5f;
+
     internal static bool RelicTrackerEnabled { get; set; } = true;
+    internal static bool RelicTrackerShowReady { get; set; } = true;
+    internal static bool RelicTrackerShowProgressFraction { get; set; } = true;
+
     internal static bool SynergyHintsEnabled { get; set; } = true;
     internal static bool WishlistEnabled { get; set; } = true;
     internal static bool MultiplayerPingsEnabled { get; set; } = true;
@@ -45,9 +56,21 @@ internal static class SpireGpsSettings
             case "shopWeight": ShopWeight = Convert.ToSingle(value); break;
             case "restWeight": RestWeight = Convert.ToSingle(value); break;
             case "treasureWeight": TreasureWeight = Convert.ToSingle(value); break;
+
             case "turnGuardEnabled": TurnGuardEnabled = Convert.ToBoolean(value); break;
+            case "turnGuardWarnPlayableCards": TurnGuardWarnPlayableCards = Convert.ToBoolean(value); break;
+            case "turnGuardWarnEnergy": TurnGuardWarnEnergy = Convert.ToBoolean(value); break;
+            case "turnGuardWarnLethal": TurnGuardWarnLethal = Convert.ToBoolean(value); break;
+            case "turnGuardAutoUnready": TurnGuardAutoUnready = Convert.ToBoolean(value); break;
+            case "turnGuardConfirmSeconds": TurnGuardConfirmSeconds = Convert.ToSingle(value); break;
+
             case "potionGuardEnabled": PotionGuardEnabled = Convert.ToBoolean(value); break;
+            case "potionGuardConfirmSeconds": PotionGuardConfirmSeconds = Convert.ToSingle(value); break;
+
             case "relicTrackerEnabled": RelicTrackerEnabled = Convert.ToBoolean(value); break;
+            case "relicTrackerShowReady": RelicTrackerShowReady = Convert.ToBoolean(value); break;
+            case "relicTrackerShowProgressFraction": RelicTrackerShowProgressFraction = Convert.ToBoolean(value); break;
+
             case "synergyHintsEnabled": SynergyHintsEnabled = Convert.ToBoolean(value); break;
             case "wishlistEnabled": WishlistEnabled = Convert.ToBoolean(value); break;
             case "multiplayerPingsEnabled": MultiplayerPingsEnabled = Convert.ToBoolean(value); break;
