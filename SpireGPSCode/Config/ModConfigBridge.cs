@@ -41,7 +41,7 @@ internal static class ModConfigBridge
 
         if (_apiType is null || _entryType is null || _configType is null)
         {
-            MainFile.Logger.Info("ModConfig not detected; using SpireGPS defaults.");
+            MainFile.Logger.Info("ModConfig not detected; using SpireGPS defaults (all modules enabled).");
             return;
         }
 
@@ -84,7 +84,7 @@ internal static class ModConfigBridge
             Header("Information"),
             Toggle("relicTrackerEnabled", "Relic Progress", true),
             Toggle("synergyHintsEnabled", "Synergy Hints", true),
-            Toggle("wishlistEnabled", "Build Wishlist", false),
+            Toggle("wishlistEnabled", "Build Wishlist", true),
             Header("Multiplayer"),
             Toggle("multiplayerPingsEnabled", "Multiplayer Pings", true)
         };
@@ -136,7 +136,7 @@ internal static class ModConfigBridge
             ("potionGuardEnabled", true),
             ("relicTrackerEnabled", true),
             ("synergyHintsEnabled", true),
-            ("wishlistEnabled", false),
+            ("wishlistEnabled", true),
             ("multiplayerPingsEnabled", true)
         })
         {
