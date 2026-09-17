@@ -10,9 +10,9 @@ internal static class SpireGpsSettings
     internal static string DefaultRouteSort { get; set; } = "Preferred";
     internal static bool SortDescending { get; set; } = true;
     internal static bool PreferredRouteEnabled { get; set; } = true;
+    internal static bool AutoHighlightPreferredRoute { get; set; } = true;
 
     // Positive values favour a room type; negative values avoid it.
-    // These defaults are deliberately mild and fully user-configurable.
     internal static float MonsterWeight { get; set; } = -1f;
     internal static float UnknownWeight { get; set; } = 0f;
     internal static float EliteWeight { get; set; } = 2f;
@@ -38,6 +38,7 @@ internal static class SpireGpsSettings
             case "defaultRouteSort": DefaultRouteSort = Convert.ToString(value) ?? "Preferred"; break;
             case "sortDescending": SortDescending = Convert.ToBoolean(value); break;
             case "preferredRouteEnabled": PreferredRouteEnabled = Convert.ToBoolean(value); break;
+            case "autoHighlightPreferredRoute": AutoHighlightPreferredRoute = Convert.ToBoolean(value); break;
             case "monsterWeight": MonsterWeight = Convert.ToSingle(value); break;
             case "unknownWeight": UnknownWeight = Convert.ToSingle(value); break;
             case "eliteWeight": EliteWeight = Convert.ToSingle(value); break;
