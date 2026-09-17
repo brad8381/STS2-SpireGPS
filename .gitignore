@@ -7,3 +7,4 @@ obj/
 *.dll
 GodotSharp/
 .godot/
+local.props
