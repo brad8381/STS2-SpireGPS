@@ -12,6 +12,7 @@ internal static class RoutePlannerService
     internal static IReadOnlyList<RouteInfo> Routes => _routes;
     internal static IReadOnlyList<RouteInfo> SortedRoutes => _sortedRoutes;
     internal static RouteInfo? PreferredRoute { get; private set; }
+    internal static RouteInfo? SelectedRoute { get; private set; }
     internal static RouteSortMode CurrentSort { get; private set; } = RouteSortMode.Preferred;
     internal static bool SortDescending { get; private set; } = true;
 
@@ -20,6 +21,7 @@ internal static class RoutePlannerService
         _routes.Clear();
         _sortedRoutes.Clear();
         PreferredRoute = null;
+        SelectedRoute = null;
     }
 
     internal static void Refresh(RunState runState)
@@ -32,6 +34,18 @@ internal static class RoutePlannerService
         var paths = new List<List<MapPoint>>();
         Enumerate(startPoint, new List<MapPoint>(), paths);
 
+        // Match RouteSuggest's deterministic path ordering so Route N is stable for a given map state.
+        paths.Sort((a, b) =>
+        {
+            int minLen = Math.Min(a.Count, b.Count);
+            for (int i = 0; i < minLen; i++)
+            {
+                int cmp = a[i].coord.CompareTo(b[i].coord);
+                if (cmp != 0) return cmp;
+            }
+            return a.Count.CompareTo(b.Count);
+        });
+
         for (int i = 0; i < paths.Count; i++)
             _routes.Add(new RouteInfo(i + 1, paths[i]));
 
@@ -42,8 +56,19 @@ internal static class RoutePlannerService
                 .FirstOrDefault()
             : null;
 
+        if (SpireGpsSettings.AutoHighlightPreferredRoute)
+            SelectedRoute = PreferredRoute;
+
         var mode = ParseSortMode(SpireGpsSettings.DefaultRouteSort);
         Sort(mode, SpireGpsSettings.SortDescending);
+    }
+
+    internal static void SelectRoute(RouteInfo? route)
+    {
+        if (route is not null && SelectedRoute?.Index == route.Index)
+            SelectedRoute = null;
+        else
+            SelectedRoute = route;
     }
 
     internal static void Sort(RouteSortMode mode, bool descending)
