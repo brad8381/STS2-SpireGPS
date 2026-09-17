@@ -22,6 +22,9 @@ public partial class MainFile : Node
     public static void Initialize()
     {
         Logger.Info($"Loading SpireGPS {typeof(MainFile).Assembly.GetName().Version}");
+
+        RouteHighlighter.Initialize();
+        RoutePanelController.EnsureInstalled();
         ModConfigBridge.DeferredRegister();
 
         var manager = RunManager.Instance;
@@ -44,10 +47,14 @@ public partial class MainFile : Node
         if (!SpireGpsSettings.RoutePlannerEnabled || RunState is null)
         {
             RoutePlannerService.Clear();
+            RoutePanelController.Refresh();
+            RouteHighlighter.Clear();
             return;
         }
 
         RoutePlannerService.Refresh(RunState);
+        RoutePanelController.Refresh();
+        RouteHighlighter.Refresh();
 
         var preferred = PreferredRoute is null
             ? "none"
