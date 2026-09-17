@@ -7,6 +7,19 @@ internal static class SpireGpsSettings
     internal static bool HighlightSelectedRoute { get; set; } = true;
     internal static bool FadeUnselectedRoutes { get; set; } = false;
 
+    internal static string DefaultRouteSort { get; set; } = "Preferred";
+    internal static bool SortDescending { get; set; } = true;
+    internal static bool PreferredRouteEnabled { get; set; } = true;
+
+    // Positive values favour a room type; negative values avoid it.
+    // These defaults are deliberately mild and fully user-configurable.
+    internal static float MonsterWeight { get; set; } = -1f;
+    internal static float UnknownWeight { get; set; } = 0f;
+    internal static float EliteWeight { get; set; } = 2f;
+    internal static float ShopWeight { get; set; } = 1f;
+    internal static float RestWeight { get; set; } = 2f;
+    internal static float TreasureWeight { get; set; } = 1f;
+
     internal static bool TurnGuardEnabled { get; set; } = true;
     internal static bool PotionGuardEnabled { get; set; } = true;
     internal static bool RelicTrackerEnabled { get; set; } = true;
@@ -16,19 +29,27 @@ internal static class SpireGpsSettings
 
     internal static void Apply(string key, object value)
     {
-        bool enabled = Convert.ToBoolean(value);
         switch (key)
         {
-            case "routePlannerEnabled": RoutePlannerEnabled = enabled; break;
-            case "routePanelEnabled": RoutePanelEnabled = enabled; break;
-            case "highlightSelectedRoute": HighlightSelectedRoute = enabled; break;
-            case "fadeUnselectedRoutes": FadeUnselectedRoutes = enabled; break;
-            case "turnGuardEnabled": TurnGuardEnabled = enabled; break;
-            case "potionGuardEnabled": PotionGuardEnabled = enabled; break;
-            case "relicTrackerEnabled": RelicTrackerEnabled = enabled; break;
-            case "synergyHintsEnabled": SynergyHintsEnabled = enabled; break;
-            case "wishlistEnabled": WishlistEnabled = enabled; break;
-            case "multiplayerPingsEnabled": MultiplayerPingsEnabled = enabled; break;
+            case "routePlannerEnabled": RoutePlannerEnabled = Convert.ToBoolean(value); break;
+            case "routePanelEnabled": RoutePanelEnabled = Convert.ToBoolean(value); break;
+            case "highlightSelectedRoute": HighlightSelectedRoute = Convert.ToBoolean(value); break;
+            case "fadeUnselectedRoutes": FadeUnselectedRoutes = Convert.ToBoolean(value); break;
+            case "defaultRouteSort": DefaultRouteSort = Convert.ToString(value) ?? "Preferred"; break;
+            case "sortDescending": SortDescending = Convert.ToBoolean(value); break;
+            case "preferredRouteEnabled": PreferredRouteEnabled = Convert.ToBoolean(value); break;
+            case "monsterWeight": MonsterWeight = Convert.ToSingle(value); break;
+            case "unknownWeight": UnknownWeight = Convert.ToSingle(value); break;
+            case "eliteWeight": EliteWeight = Convert.ToSingle(value); break;
+            case "shopWeight": ShopWeight = Convert.ToSingle(value); break;
+            case "restWeight": RestWeight = Convert.ToSingle(value); break;
+            case "treasureWeight": TreasureWeight = Convert.ToSingle(value); break;
+            case "turnGuardEnabled": TurnGuardEnabled = Convert.ToBoolean(value); break;
+            case "potionGuardEnabled": PotionGuardEnabled = Convert.ToBoolean(value); break;
+            case "relicTrackerEnabled": RelicTrackerEnabled = Convert.ToBoolean(value); break;
+            case "synergyHintsEnabled": SynergyHintsEnabled = Convert.ToBoolean(value); break;
+            case "wishlistEnabled": WishlistEnabled = Convert.ToBoolean(value); break;
+            case "multiplayerPingsEnabled": MultiplayerPingsEnabled = Convert.ToBoolean(value); break;
         }
     }
 }
