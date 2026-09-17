@@ -1,0 +1,6 @@
+<Project>
+    <Import Project="local.props" Condition="Exists('local.props')" />
+    <PropertyGroup>
+        <InstallToGame Condition="'$(InstallToGame)' == ''">false</InstallToGame>
+    </PropertyGroup>
+</Project>
