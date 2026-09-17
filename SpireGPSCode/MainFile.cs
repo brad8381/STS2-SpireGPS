@@ -16,6 +16,8 @@ public partial class MainFile : Node
 
     public static RunState? RunState { get; private set; }
     public static IReadOnlyList<RouteInfo> Routes => RoutePlannerService.Routes;
+    public static IReadOnlyList<RouteInfo> SortedRoutes => RoutePlannerService.SortedRoutes;
+    public static RouteInfo? PreferredRoute => RoutePlannerService.PreferredRoute;
 
     public static void Initialize()
     {
@@ -46,6 +48,11 @@ public partial class MainFile : Node
         }
 
         RoutePlannerService.Refresh(RunState);
-        Logger.Info($"Route Planner: {Routes.Count} route(s) reachable from the current map position.");
+
+        var preferred = PreferredRoute is null
+            ? "none"
+            : $"Route {PreferredRoute.Index} (score {RoutePlannerService.GetPreferredScore(PreferredRoute):0.##})";
+
+        Logger.Info($"Route Planner: {Routes.Count} route(s) reachable. Preferred: {preferred}.");
     }
 }
