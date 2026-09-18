@@ -13,6 +13,7 @@ namespace SpireGPS;
 public partial class MainFile : Node
 {
     public const string ModId = "SpireGPS";
+    public const string DisplayName = "Banter's Tweak's";
 
     public static MegaCrit.Sts2.Core.Logging.Logger Logger { get; } =
         new(ModId, MegaCrit.Sts2.Core.Logging.LogType.Generic);
@@ -24,7 +25,7 @@ public partial class MainFile : Node
 
     public static void Initialize()
     {
-        Logger.Info($"Loading SpireGPS {typeof(MainFile).Assembly.GetName().Version}");
+        Logger.Info($"Loading {DisplayName} {typeof(MainFile).Assembly.GetName().Version}");
 
         new Harmony("brad8381.spiregps").PatchAll(typeof(MainFile).Assembly);
         SpireGpsToast.EnsureInstalled();
