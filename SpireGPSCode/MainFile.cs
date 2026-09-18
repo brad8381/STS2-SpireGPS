@@ -2,6 +2,7 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Runs;
+using SpireGPS.Compatibility;
 using SpireGPS.Config;
 using SpireGPS.Features.DrawingPalette;
 using SpireGPS.Features.RoutePlanner;
@@ -28,7 +29,7 @@ public partial class MainFile : Node
     {
         Logger.Info($"Loading {DisplayName} {typeof(MainFile).Assembly.GetName().Version}");
 
-        new Harmony("brad8381.spiregps").PatchAll(typeof(MainFile).Assembly);
+        new Harmony(CompatibilityManager.HarmonyId).PatchAll(typeof(MainFile).Assembly);
         SpireGpsToast.EnsureInstalled();
         TurnGuardService.Initialize();
 
