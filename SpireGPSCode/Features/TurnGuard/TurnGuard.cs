@@ -8,6 +8,7 @@ using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.MonsterMoves.Intents;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Runs;
+using SpireGPS.Compatibility;
 using SpireGPS.Config;
 using SpireGPS.UI;
 
@@ -162,7 +163,7 @@ internal static class EndTurnGuardPatch
 
     private static bool Prefix(NEndTurnButton __instance)
     {
-        if (!SpireGpsSettings.TurnGuardEnabled)
+        if (!SpireGpsSettings.TurnGuardEnabled || CompatibilityManager.ShouldYieldTurnGuard())
             return true;
 
         try
