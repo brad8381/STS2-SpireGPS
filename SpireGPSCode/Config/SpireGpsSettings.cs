@@ -42,6 +42,13 @@ internal static class SpireGpsSettings
     internal static bool RelicTrackerShowReady { get; set; } = true;
     internal static bool RelicTrackerShowProgressFraction { get; set; } = true;
 
+    internal static bool DrawingPaletteEnabled { get; set; } = true;
+    internal static bool DrawingPaletteExclusiveMultiplayerColors { get; set; } = true;
+
+    internal static bool MapLegendEnabled { get; set; } = true;
+    internal static bool MapLegendVisible { get; set; } = true;
+    internal static bool MapLegendMovable { get; set; } = true;
+
     internal static bool SynergyHintsEnabled { get; set; } = true;
     internal static bool WishlistEnabled { get; set; } = true;
     internal static bool MultiplayerPingsEnabled { get; set; } = true;
@@ -86,6 +93,13 @@ internal static class SpireGpsSettings
             case "relicTrackerEnabled": RelicTrackerEnabled = Convert.ToBoolean(value); break;
             case "relicTrackerShowReady": RelicTrackerShowReady = Convert.ToBoolean(value); break;
             case "relicTrackerShowProgressFraction": RelicTrackerShowProgressFraction = Convert.ToBoolean(value); break;
+
+            case "drawingPaletteEnabled": DrawingPaletteEnabled = Convert.ToBoolean(value); break;
+            case "drawingPaletteExclusiveColors": DrawingPaletteExclusiveMultiplayerColors = Convert.ToBoolean(value); break;
+
+            case "mapLegendEnabled": MapLegendEnabled = Convert.ToBoolean(value); break;
+            case "mapLegendVisible": MapLegendVisible = Convert.ToBoolean(value); break;
+            case "mapLegendMovable": MapLegendMovable = Convert.ToBoolean(value); break;
 
             case "synergyHintsEnabled": SynergyHintsEnabled = Convert.ToBoolean(value); break;
             case "wishlistEnabled": WishlistEnabled = Convert.ToBoolean(value); break;
