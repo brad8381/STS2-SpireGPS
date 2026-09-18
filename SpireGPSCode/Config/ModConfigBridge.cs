@@ -41,7 +41,7 @@ internal static class ModConfigBridge
 
         if (_apiType is null || _entryType is null || _configType is null)
         {
-            MainFile.Logger.Info("ModConfig not detected; all SpireGPS modules are enabled with built-in defaults.");
+            MainFile.Logger.Info("ModConfig not detected; all Banter's Tweak's modules are enabled with built-in defaults.");
             return;
         }
 
@@ -53,15 +53,15 @@ internal static class ModConfigBridge
                 .OrderByDescending(m => m.GetParameters().Length)
                 .First();
 
-            var names = new Dictionary<string, string> { ["en"] = "SpireGPS" };
+            var names = new Dictionary<string, string> { ["en"] = "Banter's Tweak's" };
             if (register.GetParameters().Length == 4)
-                register.Invoke(null, new object[] { MainFile.ModId, "SpireGPS", names, entries });
+                register.Invoke(null, new object[] { MainFile.ModId, "Banter's Tweak's", names, entries });
             else
-                register.Invoke(null, new object[] { MainFile.ModId, "SpireGPS", entries });
+                register.Invoke(null, new object[] { MainFile.ModId, "Banter's Tweak's", entries });
 
             _registered = true;
             LoadSavedValues();
-            MainFile.Logger.Info("Registered SpireGPS settings with ModConfig.");
+            MainFile.Logger.Info("Registered Banter's Tweak's settings with ModConfig.");
         }
         catch (Exception ex)
         {
@@ -75,7 +75,7 @@ internal static class ModConfigBridge
 
         var entries = new List<object>
         {
-            Header("Route Planner"),
+            Header("Banter's Tweak's - Route Planner"),
             Toggle("routePlannerEnabled", "Enable Route Planner", true),
             Toggle("routePanelEnabled", "Show Route List", true),
             Toggle("highlightSelectedRoute", "Highlight Selected Route", true),
@@ -86,7 +86,9 @@ internal static class ModConfigBridge
 
             Header("Suggested Route"),
             Toggle("preferredRouteEnabled", "Show Suggested Route", true),
-            Toggle("autoHighlightPreferredRoute", "Auto-select Suggested Route", true),
+            Toggle("autoHighlightPreferredRoute", "Auto-highlight Suggested Route", true),
+            Toggle("routeAutoSelectNextNode", "Auto-select Next Suggested Node", false),
+            Toggle("routeConfirmAutoTravel", "Confirm Before Auto-travel", true),
             Toggle("routePrioritiesEnabled", "Use Priority Sorting", true),
             Dropdown("routePriority1", "Priority 1", "Elites ↑", priorityOptions),
             Dropdown("routePriority2", "Priority 2", "Treasure ↑", priorityOptions),
@@ -98,17 +100,23 @@ internal static class ModConfigBridge
             Slider("restWeight", "Campsite Weight", 2f),
             Slider("treasureWeight", "Treasure Weight", 1f),
 
-            Header("Safety"),
-            Toggle("turnGuardEnabled", "Turn Guard", true),
-            Toggle("potionGuardEnabled", "Potion Guard", true),
+            Header("Banter's Tweak's - Turn Guard"),
+            Toggle("turnGuardEnabled", "Enable Turn Guard", true),
 
-            Header("Information"),
-            Toggle("relicTrackerEnabled", "Relic Progress", true),
-            Toggle("synergyHintsEnabled", "Synergy Hints", true),
-            Toggle("wishlistEnabled", "Build Wishlist", true),
+            Header("Banter's Tweak's - Potion Guard"),
+            Toggle("potionGuardEnabled", "Enable Potion Guard", true),
 
-            Header("Multiplayer"),
-            Toggle("multiplayerPingsEnabled", "Multiplayer Pings", true)
+            Header("Banter's Tweak's - Relic Progress"),
+            Toggle("relicTrackerEnabled", "Enable Relic Progress", true),
+
+            Header("Banter's Tweak's - Synergy Hints"),
+            Toggle("synergyHintsEnabled", "Enable Synergy Hints", true),
+
+            Header("Banter's Tweak's - Build Wishlist"),
+            Toggle("wishlistEnabled", "Enable Build Wishlist", true),
+
+            Header("Banter's Tweak's - Multiplayer Pings"),
+            Toggle("multiplayerPingsEnabled", "Enable Multiplayer Pings", true)
         };
 
         var result = Array.CreateInstance(_entryType!, entries.Count);
@@ -203,6 +211,8 @@ internal static class ModConfigBridge
         Load("sortDescending", true);
         Load("preferredRouteEnabled", true);
         Load("autoHighlightPreferredRoute", true);
+        Load("routeAutoSelectNextNode", false);
+        Load("routeConfirmAutoTravel", true);
 
         Load("routePrioritiesEnabled", true);
         Load("routePriority1", "Elites ↑");
