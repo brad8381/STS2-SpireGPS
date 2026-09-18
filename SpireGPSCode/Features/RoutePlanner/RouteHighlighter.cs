@@ -53,7 +53,10 @@ internal static class RouteHighlighter
     {
         foreach (var (tick, original) in OriginalTicks.ToArray())
         {
-            if (tick is not null && GodotObject.IsInstanceValid(tick))
+            if (tick is null)
+                continue;
+
+            if (GodotObject.IsInstanceValid(tick))
             {
                 tick.Modulate = original.color;
                 tick.Scale = original.scale;
