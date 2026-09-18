@@ -76,6 +76,12 @@ internal static class DrawingPaletteService
         if (!Claims.ContainsKey(localId))
         {
             var player = players.GetPlayer(localId);
+            if (player is null)
+            {
+                MainFile.Logger.Warn($"Drawing Palette: local player {localId} was not available during map initialization.");
+                return;
+            }
+
             int preferred = FindClosestPaletteIndex(player.Character.MapDrawingColor);
             int claim = FindFreeIndexStartingAt(preferred, localId) ?? preferred;
             Claims[localId] = claim;
