@@ -33,6 +33,13 @@ internal static class CompatibilityManager
             return true;
         }
 
+        if (IsAssemblyLoaded("ColorDrawLib"))
+        {
+            LogOnce("DrawingPalette-ColorDrawLib",
+                "Compatibility: ColorDrawLib detected. Banter's Tweak's - Drawing Palette will yield to it.");
+            return true;
+        }
+
         var target = AccessTools.Method(typeof(NMapDrawings), "CreateLineForPlayer");
         return target is not null && HasForeignPatch(target, "Drawing Palette");
     }
