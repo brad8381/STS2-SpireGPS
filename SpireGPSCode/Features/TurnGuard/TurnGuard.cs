@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
