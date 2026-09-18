@@ -44,6 +44,8 @@ internal partial class RoutePanelLayer : CanvasLayer
     private PanelContainer _panel = null!;
     private Label _status = null!;
     private CheckBox _autoSelectSuggested = null!;
+    private CheckBox _autoSelectNextNode = null!;
+    private CheckBox _confirmAutoTravel = null!;
     private OptionButton _priority1 = null!;
     private OptionButton _priority2 = null!;
     private OptionButton _priority3 = null!;
@@ -81,10 +83,12 @@ internal partial class RoutePanelLayer : CanvasLayer
         {
             RefreshRoutes();
             RouteHighlighter.Refresh();
+            RouteAutoSelector.OnMapOpened();
         }
         else if (!mapOpen && _mapWasOpen)
         {
             RouteHighlighter.Clear();
+            RouteAutoSelector.OnMapClosed();
         }
 
         _mapWasOpen = mapOpen;
@@ -96,6 +100,8 @@ internal partial class RoutePanelLayer : CanvasLayer
             return;
 
         _autoSelectSuggested.SetPressedNoSignal(SpireGpsSettings.AutoHighlightPreferredRoute);
+        _autoSelectNextNode.SetPressedNoSignal(SpireGpsSettings.AutoSelectNextNode);
+        _confirmAutoTravel.SetPressedNoSignal(SpireGpsSettings.ConfirmAutoTravel);
         SetPrioritySelection(_priority1, SpireGpsSettings.RoutePriority1);
         SetPrioritySelection(_priority2, SpireGpsSettings.RoutePriority2);
         SetPrioritySelection(_priority3, SpireGpsSettings.RoutePriority3);
@@ -119,7 +125,7 @@ internal partial class RoutePanelLayer : CanvasLayer
 
         var title = new Label
         {
-            Text = "SpireGPS — Routes",
+            Text = "Banter's Tweak's - Route Planner",
             HorizontalAlignment = HorizontalAlignment.Center
         };
         title.AddThemeFontSizeOverride("font_size", 18);
@@ -134,13 +140,38 @@ internal partial class RoutePanelLayer : CanvasLayer
 
         _autoSelectSuggested = new CheckBox
         {
-            Text = "Auto-select suggested route",
+            Text = "Auto-highlight suggested route",
             ButtonPressed = SpireGpsSettings.AutoHighlightPreferredRoute,
-            TooltipText = "Automatically select and highlight the ★ suggested route whenever routes are recalculated.",
+            TooltipText = "Automatically make the ★ suggested route the highlighted route whenever routes are recalculated.",
             SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
         };
         _autoSelectSuggested.Toggled += OnAutoSelectSuggestedToggled;
         outer.AddChild(_autoSelectSuggested);
+
+        var travelRow = new HBoxContainer
+        {
+            Alignment = BoxContainer.AlignmentMode.Center
+        };
+        travelRow.AddThemeConstantOverride("separation", 12);
+
+        _autoSelectNextNode = new CheckBox
+        {
+            Text = "Auto-select next suggested node",
+            ButtonPressed = SpireGpsSettings.AutoSelectNextNode,
+            TooltipText = "Select/vote for the next node on the currently highlighted route when the map opens.",
+        };
+        _autoSelectNextNode.Toggled += OnAutoSelectNextNodeToggled;
+        travelRow.AddChild(_autoSelectNextNode);
+
+        _confirmAutoTravel = new CheckBox
+        {
+            Text = "Confirm before auto-travel",
+            ButtonPressed = SpireGpsSettings.ConfirmAutoTravel,
+            TooltipText = "Show a confirmation before Banter's Tweak's selects the next map node.",
+        };
+        _confirmAutoTravel.Toggled += OnConfirmAutoTravelToggled;
+        travelRow.AddChild(_confirmAutoTravel);
+        outer.AddChild(travelRow);
 
         var priorityRow = new HBoxContainer
         {
@@ -230,6 +261,7 @@ internal partial class RoutePanelLayer : CanvasLayer
 
         RebuildRows();
         RouteHighlighter.Refresh();
+        RouteAutoSelector.TrySelectNext(force: true);
     }
 
     private void OnAutoSelectSuggestedToggled(bool enabled)
@@ -242,6 +274,25 @@ internal partial class RoutePanelLayer : CanvasLayer
 
         RebuildRows();
         RouteHighlighter.Refresh();
+        if (enabled)
+            RouteAutoSelector.TrySelectNext(force: true);
+    }
+
+    private void OnAutoSelectNextNodeToggled(bool enabled)
+    {
+        SpireGpsSettings.AutoSelectNextNode = enabled;
+        ModConfigBridge.SetValue("routeAutoSelectNextNode", enabled);
+
+        if (enabled)
+            RouteAutoSelector.TrySelectNext(force: true);
+        else
+            RouteAutoSelector.OnMapClosed();
+    }
+
+    private void OnConfirmAutoTravelToggled(bool enabled)
+    {
+        SpireGpsSettings.ConfirmAutoTravel = enabled;
+        ModConfigBridge.SetValue("routeConfirmAutoTravel", enabled);
     }
 
     private void RebuildHeaders()
@@ -319,6 +370,7 @@ internal partial class RoutePanelLayer : CanvasLayer
                 RoutePlannerService.SelectRoute(route);
                 RebuildRows();
                 RouteHighlighter.Refresh();
+                RouteAutoSelector.TrySelectNext(force: true);
             };
             row.AddChild(routeButton);
 
