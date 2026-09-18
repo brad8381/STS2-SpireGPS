@@ -5,6 +5,7 @@ namespace SpireGPS.UI;
 internal static class SpireGpsToast
 {
     private const string LayerName = "SpireGPSToast";
+    private static readonly Queue<(string text, double seconds)> Pending = new();
 
     internal static void EnsureInstalled()
     {
@@ -14,29 +15,31 @@ internal static class SpireGpsToast
         if (tree.Root.GetNodeOrNull<SpireGpsToastLayer>(LayerName) is not null)
             return;
 
-        tree.Root.CallDeferred(Node.MethodName.AddChild, new SpireGpsToastLayer { Name = LayerName });
+        var layer = new SpireGpsToastLayer { Name = LayerName };
+        tree.Root.CallDeferred(Node.MethodName.AddChild, layer);
     }
 
     internal static void Show(string text, double seconds = 2.5)
     {
-        EnsureInstalled();
         if (Engine.GetMainLoop() is not SceneTree tree)
             return;
 
-        void TryShow()
+        if (tree.Root.GetNodeOrNull<SpireGpsToastLayer>(LayerName) is { } layer && layer.IsReady)
         {
-            tree.Root.GetNodeOrNull<SpireGpsToastLayer>(LayerName)?.ShowMessage(text, seconds);
+            layer.ShowMessage(text, seconds);
+            return;
         }
 
-        if (tree.Root.GetNodeOrNull<SpireGpsToastLayer>(LayerName) is null)
-            tree.ProcessFrame += OneFrame;
-        else
-            TryShow();
+        Pending.Enqueue((text, seconds));
+        EnsureInstalled();
+    }
 
-        void OneFrame()
+    internal static void FlushPending(SpireGpsToastLayer layer)
+    {
+        while (Pending.Count > 0)
         {
-            tree.ProcessFrame -= OneFrame;
-            TryShow();
+            var item = Pending.Dequeue();
+            layer.ShowMessage(item.text, item.seconds);
         }
     }
 }
@@ -46,9 +49,11 @@ internal partial class SpireGpsToastLayer : CanvasLayer
     private PanelContainer _panel = null!;
     private Label _label = null!;
     private double _hideAt;
-    private bool _ready;
-    private string? _pendingText;
-    private double _pendingSeconds;
+    private string? _queuedText;
+    private double _queuedSeconds;
+    private bool _revealQueued;
+
+    internal bool IsReady { get; private set; }
 
     public SpireGpsToastLayer()
     {
@@ -94,19 +99,13 @@ internal partial class SpireGpsToastLayer : CanvasLayer
         _panel.AddChild(_label);
         AddChild(_panel);
 
-        _ready = true;
-        if (_pendingText is not null)
-        {
-            string text = _pendingText;
-            double seconds = _pendingSeconds;
-            _pendingText = null;
-            ShowMessage(text, seconds);
-        }
+        IsReady = true;
+        SpireGpsToast.FlushPending(this);
     }
 
     public override void _Process(double delta)
     {
-        if (!_ready)
+        if (!IsReady)
             return;
 
         if (_panel.Visible && Time.GetTicksMsec() / 1000.0 >= _hideAt)
@@ -118,19 +117,42 @@ internal partial class SpireGpsToastLayer : CanvasLayer
 
     internal void ShowMessage(string text, double seconds)
     {
-        if (!_ready)
-        {
-            _pendingText = text;
-            _pendingSeconds = seconds;
+        if (!IsReady)
             return;
-        }
 
+        // Set content now, but never expose the panel until the next UI frame.
+        // This avoids the first-combat blank panel before Godot has laid out the label.
+        _queuedText = text;
+        _queuedSeconds = Math.Max(0.5, seconds);
         _label.Text = text;
-        _hideAt = Time.GetTicksMsec() / 1000.0 + Math.Max(0.5, seconds);
-        _panel.Visible = true;
+        _panel.Visible = false;
         _panel.ResetSize();
-        _panel.CallDeferred(Control.MethodName.ResetSize);
+
+        if (_revealQueued)
+            return;
+
+        _revealQueued = true;
+        if (Engine.GetMainLoop() is SceneTree tree)
+            tree.ProcessFrame += RevealOnNextFrame;
+    }
+
+    private void RevealOnNextFrame()
+    {
+        if (Engine.GetMainLoop() is not SceneTree tree)
+            return;
+
+        tree.ProcessFrame -= RevealOnNextFrame;
+        _revealQueued = false;
+
+        if (!IsReady || string.IsNullOrWhiteSpace(_queuedText))
+            return;
+
+        _label.Text = _queuedText;
+        _panel.ResetSize();
+        _hideAt = Time.GetTicksMsec() / 1000.0 + _queuedSeconds;
+        _panel.Visible = true;
         PositionPanel();
+        _queuedText = null;
     }
 
     private void PositionPanel()
