@@ -71,6 +71,8 @@ internal static class ModConfigBridge
 
     private static Array BuildEntries()
     {
+        var priorityOptions = new[] { "None", "Elites ↑", "Treasure ↑", "Rest ↑", "Shop ↑", "Unknown ↑", "Monsters ↓", "Monsters ↑" };
+
         var entries = new List<object>
         {
             Header("Route Planner"),
@@ -85,6 +87,10 @@ internal static class ModConfigBridge
             Header("Suggested Route"),
             Toggle("preferredRouteEnabled", "Show Suggested Route", true),
             Toggle("autoHighlightPreferredRoute", "Auto-select Suggested Route", true),
+            Toggle("routePrioritiesEnabled", "Use Priority Sorting", true),
+            Dropdown("routePriority1", "Priority 1", "Elites ↑", priorityOptions),
+            Dropdown("routePriority2", "Priority 2", "Treasure ↑", priorityOptions),
+            Dropdown("routePriority3", "Priority 3", "None", priorityOptions),
             Slider("monsterWeight", "Monster Weight", -1f),
             Slider("unknownWeight", "Unknown (?) Weight", 0f),
             Slider("eliteWeight", "Elite Weight", 2f),
@@ -197,6 +203,12 @@ internal static class ModConfigBridge
         Load("sortDescending", true);
         Load("preferredRouteEnabled", true);
         Load("autoHighlightPreferredRoute", true);
+
+        Load("routePrioritiesEnabled", true);
+        Load("routePriority1", "Elites ↑");
+        Load("routePriority2", "Treasure ↑");
+        Load("routePriority3", "None");
+
         Load("monsterWeight", -1f);
         Load("unknownWeight", 0f);
         Load("eliteWeight", 2f);
