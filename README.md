@@ -11,7 +11,9 @@ The idea is simple: surface useful information, prevent accidental inputs, and m
 - **Banter's Tweak's - Route Planner** - shows every reachable route to the boss, room counts, route highlighting, sorting, configurable priorities, and a suggested route.
 - **Banter's Tweak's - Turn Guard** - warns before accidental end turns for playable cards, remaining energy, and potentially lethal incoming damage.
 - **Banter's Tweak's - Potion Guard** - prevents accidental potion discards by requiring confirmation.
-- **Banter's Tweak's - Relic Progress** - planned progress-to-trigger counters and ready indicators for relevant relics.
+- **Banter's Tweak's - Relic Progress** - native-style progress fractions and ready indicators for relevant counter relics.
+- **Banter's Tweak's - Drawing Palette** - selectable map drawing colours with unique multiplayer colour assignments.
+- **Banter's Tweak's - Map Legend** - hide/show the vanilla map legend and move it to a preferred position.
 - **Banter's Tweak's - Synergy Hints** - planned mechanical interaction hints for offered cards and relics.
 - **Banter's Tweak's - Build Wishlist** - planned wishlist marking for cards and relics.
 - **Banter's Tweak's - Multiplayer Pings** - planned lightweight tactical pings.
@@ -72,6 +74,12 @@ Implemented for the current v0.1 development branch:
 - Optional automatic next-node selection with confirmation
 - Turn Guard
 - Potion Guard
+- Relic Progress fractions and ready indicators
 - Shared warning/toast UI
 
-Next modules are Relic Progress, Build Wishlist, Synergy Hints, and Multiplayer Pings.
+Queued next:
+- Drawing Palette with exclusive multiplayer colours
+- Map Legend hide/show, move, remember position, and reset
+- Build Wishlist
+- Synergy Hints
+- Multiplayer Pings
