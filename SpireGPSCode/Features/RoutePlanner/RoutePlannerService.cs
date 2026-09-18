@@ -57,10 +57,15 @@ internal static class RoutePlannerService
             : null;
 
         if (SpireGpsSettings.AutoHighlightPreferredRoute)
-            SelectedRoute = PreferredRoute;
+            SelectPreferredRoute();
 
         var mode = ParseSortMode(SpireGpsSettings.DefaultRouteSort);
         Sort(mode, SpireGpsSettings.SortDescending);
+    }
+
+    internal static void SelectPreferredRoute()
+    {
+        SelectedRoute = PreferredRoute;
     }
 
     internal static void SelectRoute(RouteInfo? route)
