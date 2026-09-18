@@ -1,8 +1,11 @@
 using Godot;
+using HarmonyLib;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Runs;
 using SpireGPS.Config;
 using SpireGPS.Features.RoutePlanner;
+using SpireGPS.Features.TurnGuard;
+using SpireGPS.UI;
 
 namespace SpireGPS;
 
@@ -22,6 +25,10 @@ public partial class MainFile : Node
     public static void Initialize()
     {
         Logger.Info($"Loading SpireGPS {typeof(MainFile).Assembly.GetName().Version}");
+
+        new Harmony("brad8381.spiregps").PatchAll(typeof(MainFile).Assembly);
+        SpireGpsToast.EnsureInstalled();
+        TurnGuardService.Initialize();
 
         RouteHighlighter.Initialize();
         RoutePanelController.EnsureInstalled();
