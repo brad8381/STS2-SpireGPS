@@ -34,7 +34,7 @@ internal static class RoutePlannerService
         var paths = new List<List<MapPoint>>();
         Enumerate(startPoint, new List<MapPoint>(), paths);
 
-        // Match RouteSuggest's deterministic path ordering so Route N is stable for a given map state.
+        // Match RouteSuggest's deterministic path ordering so Route N stays stable.
         paths.Sort((a, b) =>
         {
             int minLen = Math.Min(a.Count, b.Count);
@@ -49,18 +49,20 @@ internal static class RoutePlannerService
         for (int i = 0; i < paths.Count; i++)
             _routes.Add(new RouteInfo(i + 1, paths[i]));
 
-        PreferredRoute = SpireGpsSettings.PreferredRouteEnabled
-            ? _routes
-                .OrderByDescending(RoutePreferenceScorer.Score)
-                .ThenBy(r => r.Index)
-                .FirstOrDefault()
-            : null;
-
-        if (SpireGpsSettings.AutoHighlightPreferredRoute)
-            SelectPreferredRoute();
+        RecalculateSuggestion();
 
         var mode = ParseSortMode(SpireGpsSettings.DefaultRouteSort);
         Sort(mode, SpireGpsSettings.SortDescending);
+    }
+
+    internal static void RecalculateSuggestion()
+    {
+        PreferredRoute = SpireGpsSettings.PreferredRouteEnabled
+            ? GetSuggestedRoutes().FirstOrDefault()
+            : null;
+
+        if (SpireGpsSettings.AutoHighlightPreferredRoute)
+            SelectedRoute = PreferredRoute;
     }
 
     internal static void SelectPreferredRoute()
@@ -84,8 +86,8 @@ internal static class RoutePlannerService
         IEnumerable<RouteInfo> query = mode switch
         {
             RouteSortMode.Preferred => descending
-                ? _routes.OrderByDescending(RoutePreferenceScorer.Score).ThenBy(r => r.Index)
-                : _routes.OrderBy(RoutePreferenceScorer.Score).ThenBy(r => r.Index),
+                ? GetSuggestedRoutes()
+                : GetSuggestedRoutes().Reverse(),
             RouteSortMode.Monsters => SortBy(r => r.Monsters, descending),
             RouteSortMode.Unknowns => SortBy(r => r.Unknowns, descending),
             RouteSortMode.Elites => SortBy(r => r.Elites, descending),
@@ -106,6 +108,30 @@ internal static class RoutePlannerService
     }
 
     internal static float GetPreferredScore(RouteInfo route) => RoutePreferenceScorer.Score(route);
+
+    private static IEnumerable<RouteInfo> GetSuggestedRoutes()
+    {
+        var comparer = Comparer<RouteInfo>.Create(CompareSuggested);
+        return _routes.OrderBy(r => r, comparer);
+    }
+
+    private static int CompareSuggested(RouteInfo a, RouteInfo b)
+    {
+        if (SpireGpsSettings.RoutePrioritiesEnabled)
+        {
+            int cmp = RoutePriority.Compare(a, b, SpireGpsSettings.RoutePriority1);
+            if (cmp != 0) return cmp;
+
+            cmp = RoutePriority.Compare(a, b, SpireGpsSettings.RoutePriority2);
+            if (cmp != 0) return cmp;
+
+            cmp = RoutePriority.Compare(a, b, SpireGpsSettings.RoutePriority3);
+            if (cmp != 0) return cmp;
+        }
+
+        int scoreCmp = RoutePreferenceScorer.Score(b).CompareTo(RoutePreferenceScorer.Score(a));
+        return scoreCmp != 0 ? scoreCmp : a.Index.CompareTo(b.Index);
+    }
 
     private static IEnumerable<RouteInfo> SortBy(Func<RouteInfo, int> selector, bool descending)
         => descending
