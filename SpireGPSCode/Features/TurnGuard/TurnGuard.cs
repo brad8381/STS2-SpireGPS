@@ -118,10 +118,10 @@ internal static class TurnGuardService
         if (ready && _lastReady && !CombatManager.Instance.AllPlayersReadyToEndTurn() &&
             (energy != _lastEnergy || handHash != _lastHandHash))
         {
-            MainFile.Logger.Info("Turn Guard: hand/energy changed after ready; undoing end turn.");
+            MainFile.Logger.Info("Banter's Tweak's - Turn Guard: hand/energy changed after ready; undoing end turn.");
             RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(
                 new UndoEndPlayerTurnAction(me, state.RoundNumber));
-            SpireGpsToast.Show("Turn Guard: hand or energy changed — unreadying you.");
+            SpireGpsToast.Show("Banter's Tweak's - Turn Guard: hand or energy changed - unreadying you.");
             ready = false;
         }
 
@@ -194,7 +194,7 @@ internal static class EndTurnGuardPatch
             _armedUntil = now + (ulong)(Math.Max(0.5f, SpireGpsSettings.TurnGuardConfirmSeconds) * 1000f);
 
             SpireGpsToast.Show(
-                "Turn Guard: " + string.Join(" • ", warnings) + ". Click End Turn again to confirm.",
+                "Banter's Tweak's - Turn Guard: " + string.Join(" • ", warnings) + ". Click End Turn again to confirm.",
                 SpireGpsSettings.TurnGuardConfirmSeconds);
             return false;
         }
