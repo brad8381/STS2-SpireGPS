@@ -12,7 +12,13 @@ internal static class SpireGpsSettings
     internal static bool PreferredRouteEnabled { get; set; } = true;
     internal static bool AutoHighlightPreferredRoute { get; set; } = true;
 
+    internal static bool RoutePrioritiesEnabled { get; set; } = true;
+    internal static string RoutePriority1 { get; set; } = "Elites ↑";
+    internal static string RoutePriority2 { get; set; } = "Treasure ↑";
+    internal static string RoutePriority3 { get; set; } = "None";
+
     // Positive values favour a room type; negative values avoid it.
+    // Weights are used after route priorities as the final tie-break.
     internal static float MonsterWeight { get; set; } = -1f;
     internal static float UnknownWeight { get; set; } = 0f;
     internal static float EliteWeight { get; set; } = 2f;
@@ -50,6 +56,12 @@ internal static class SpireGpsSettings
             case "sortDescending": SortDescending = Convert.ToBoolean(value); break;
             case "preferredRouteEnabled": PreferredRouteEnabled = Convert.ToBoolean(value); break;
             case "autoHighlightPreferredRoute": AutoHighlightPreferredRoute = Convert.ToBoolean(value); break;
+
+            case "routePrioritiesEnabled": RoutePrioritiesEnabled = Convert.ToBoolean(value); break;
+            case "routePriority1": RoutePriority1 = Convert.ToString(value) ?? "Elites ↑"; break;
+            case "routePriority2": RoutePriority2 = Convert.ToString(value) ?? "Treasure ↑"; break;
+            case "routePriority3": RoutePriority3 = Convert.ToString(value) ?? "None"; break;
+
             case "monsterWeight": MonsterWeight = Convert.ToSingle(value); break;
             case "unknownWeight": UnknownWeight = Convert.ToSingle(value); break;
             case "eliteWeight": EliteWeight = Convert.ToSingle(value); break;
