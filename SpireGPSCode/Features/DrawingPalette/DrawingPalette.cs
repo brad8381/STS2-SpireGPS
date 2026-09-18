@@ -267,7 +267,7 @@ internal partial class DrawingPaletteControl : HBoxContainer
             {
                 CustomMinimumSize = new Vector2(26f, 38f),
                 TooltipText = DrawingPaletteService.Palette[index].Name,
-                FocusMode = FocusModeEnum.None
+                FocusMode = Control.FocusModeEnum.None
             };
             button.Pressed += () => DrawingPaletteService.TrySelectLocal(index);
             _buttons.Add(button);
