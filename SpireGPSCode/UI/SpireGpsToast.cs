@@ -46,6 +46,9 @@ internal partial class SpireGpsToastLayer : CanvasLayer
     private PanelContainer _panel = null!;
     private Label _label = null!;
     private double _hideAt;
+    private bool _ready;
+    private string? _pendingText;
+    private double _pendingSeconds;
 
     public SpireGpsToastLayer()
     {
@@ -90,10 +93,22 @@ internal partial class SpireGpsToastLayer : CanvasLayer
         _label.AddThemeFontSizeOverride("font_size", 16);
         _panel.AddChild(_label);
         AddChild(_panel);
+
+        _ready = true;
+        if (_pendingText is not null)
+        {
+            string text = _pendingText;
+            double seconds = _pendingSeconds;
+            _pendingText = null;
+            ShowMessage(text, seconds);
+        }
     }
 
     public override void _Process(double delta)
     {
+        if (!_ready)
+            return;
+
         if (_panel.Visible && Time.GetTicksMsec() / 1000.0 >= _hideAt)
             _panel.Visible = false;
 
@@ -103,6 +118,13 @@ internal partial class SpireGpsToastLayer : CanvasLayer
 
     internal void ShowMessage(string text, double seconds)
     {
+        if (!_ready)
+        {
+            _pendingText = text;
+            _pendingSeconds = seconds;
+            return;
+        }
+
         _label.Text = text;
         _hideAt = Time.GetTicksMsec() / 1000.0 + Math.Max(0.5, seconds);
         _panel.Visible = true;
