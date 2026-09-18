@@ -9,6 +9,8 @@ internal static class ModConfigBridge
     private static Type? _entryType;
     private static Type? _configType;
     private static bool _registered;
+    private static int _registerAttempts;
+    private const int MaxRegisterAttempts = 8;
 
     internal static void DeferredRegister()
     {
@@ -20,12 +22,23 @@ internal static class ModConfigBridge
     {
         var tree = (SceneTree)Engine.GetMainLoop();
         tree.ProcessFrame -= OnNextFrame;
-        DetectAndRegister();
+
+        _registerAttempts++;
+        if (DetectAndRegister())
+            return;
+
+        if (_registerAttempts < MaxRegisterAttempts)
+        {
+            tree.ProcessFrame += OnNextFrame;
+            return;
+        }
+
+        MainFile.Logger.Info("ModConfig not detected after startup retries; Banter's Tweak's will use built-in defaults.");
     }
 
-    private static void DetectAndRegister()
+    private static bool DetectAndRegister()
     {
-        if (_registered) return;
+        if (_registered) return true;
 
         var types = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a =>
@@ -40,10 +53,7 @@ internal static class ModConfigBridge
         _configType = types.FirstOrDefault(t => t.FullName == "ModConfig.ConfigType");
 
         if (_apiType is null || _entryType is null || _configType is null)
-        {
-            MainFile.Logger.Info("ModConfig not detected; all Banter's Tweak's modules are enabled with built-in defaults.");
-            return;
-        }
+            return false;
 
         try
         {
@@ -62,10 +72,12 @@ internal static class ModConfigBridge
             _registered = true;
             LoadSavedValues();
             MainFile.Logger.Info("Registered Banter's Tweak's settings with ModConfig.");
+            return true;
         }
         catch (Exception ex)
         {
             MainFile.Logger.Error($"ModConfig registration failed: {ex}");
+            return true;
         }
     }
 
@@ -75,6 +87,9 @@ internal static class ModConfigBridge
 
         var entries = new List<object>
         {
+            Header("Banter's Tweak's - Compatibility"),
+            Toggle("yieldToOverlappingMods", "Yield to Overlapping QoL Mods", true),
+
             Header("Banter's Tweak's - Route Planner"),
             Toggle("routePlannerEnabled", "Enable Route Planner", true),
             Toggle("routePanelEnabled", "Show Route List", true),
@@ -214,6 +229,8 @@ internal static class ModConfigBridge
 
     private static void LoadSavedValues()
     {
+        Load("yieldToOverlappingMods", true);
+
         Load("routePlannerEnabled", true);
         Load("routePanelEnabled", true);
         Load("highlightSelectedRoute", true);
