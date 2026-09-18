@@ -43,6 +43,7 @@ internal partial class RoutePanelLayer : CanvasLayer
 
     private PanelContainer _panel = null!;
     private Label _status = null!;
+    private CheckBox _autoSelectSuggested = null!;
     private HBoxContainer _headers = null!;
     private VBoxContainer _rows = null!;
     private bool _mapWasOpen;
@@ -91,6 +92,9 @@ internal partial class RoutePanelLayer : CanvasLayer
         if (!IsInsideTree())
             return;
 
+        if (_autoSelectSuggested is not null)
+            _autoSelectSuggested.SetPressedNoSignal(SpireGpsSettings.AutoHighlightPreferredRoute);
+
         RebuildHeaders();
         RebuildRows();
     }
@@ -123,6 +127,16 @@ internal partial class RoutePanelLayer : CanvasLayer
         _status.AddThemeFontSizeOverride("font_size", 12);
         outer.AddChild(_status);
 
+        _autoSelectSuggested = new CheckBox
+        {
+            Text = "Auto-select suggested route",
+            ButtonPressed = SpireGpsSettings.AutoHighlightPreferredRoute,
+            TooltipText = "Automatically select and highlight the ★ suggested route whenever routes are recalculated.",
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
+        };
+        _autoSelectSuggested.Toggled += OnAutoSelectSuggestedToggled;
+        outer.AddChild(_autoSelectSuggested);
+
         _headers = new HBoxContainer();
         _headers.AddThemeConstantOverride("separation", 2);
         outer.AddChild(_headers);
@@ -151,6 +165,18 @@ internal partial class RoutePanelLayer : CanvasLayer
         outer.AddChild(help);
     }
 
+    private void OnAutoSelectSuggestedToggled(bool enabled)
+    {
+        SpireGpsSettings.AutoHighlightPreferredRoute = enabled;
+        ModConfigBridge.SetValue("autoHighlightPreferredRoute", enabled);
+
+        if (enabled)
+            RoutePlannerService.SelectPreferredRoute();
+
+        RebuildRows();
+        RouteHighlighter.Refresh();
+    }
+
     private void RebuildHeaders()
     {
         foreach (var child in _headers.GetChildren())
@@ -163,7 +189,7 @@ internal partial class RoutePanelLayer : CanvasLayer
         AddHeader("$", RouteSortMode.Shops, CellWidth, "Shops");
         AddHeader("R", RouteSortMode.RestSites, CellWidth, "Campsites / rest sites");
         AddHeader("T", RouteSortMode.Treasures, CellWidth, "Treasure rooms");
-        AddHeader("Score", RouteSortMode.Preferred, ScoreWidth, "Preferred-route score from your configured weights");
+        AddHeader("Score", RouteSortMode.Preferred, ScoreWidth, "Suggested-route score from your configured weights");
     }
 
     private void AddHeader(string text, RouteSortMode mode, float width, string tooltip)
@@ -201,7 +227,7 @@ internal partial class RoutePanelLayer : CanvasLayer
 
         _status.Text = routes.Count == 0
             ? "No complete route to the boss found"
-            : $"{routes.Count} route{(routes.Count == 1 ? string.Empty : "s")} • ★ preferred";
+            : $"{routes.Count} route{(routes.Count == 1 ? string.Empty : "s")} • ★ suggested";
 
         foreach (var route in routes)
         {
