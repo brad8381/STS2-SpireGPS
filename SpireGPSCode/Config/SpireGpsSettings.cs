@@ -2,6 +2,8 @@ namespace SpireGPS.Config;
 
 internal static class SpireGpsSettings
 {
+    internal static bool YieldToOverlappingMods { get; set; } = true;
+
     internal static bool RoutePlannerEnabled { get; set; } = true;
     internal static bool RoutePanelEnabled { get; set; } = true;
     internal static bool HighlightSelectedRoute { get; set; } = true;
@@ -57,6 +59,8 @@ internal static class SpireGpsSettings
     {
         switch (key)
         {
+            case "yieldToOverlappingMods": YieldToOverlappingMods = Convert.ToBoolean(value); break;
+
             case "routePlannerEnabled": RoutePlannerEnabled = Convert.ToBoolean(value); break;
             case "routePanelEnabled": RoutePanelEnabled = Convert.ToBoolean(value); break;
             case "highlightSelectedRoute": HighlightSelectedRoute = Convert.ToBoolean(value); break;
