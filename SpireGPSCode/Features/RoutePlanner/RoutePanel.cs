@@ -44,6 +44,9 @@ internal partial class RoutePanelLayer : CanvasLayer
     private PanelContainer _panel = null!;
     private Label _status = null!;
     private CheckBox _autoSelectSuggested = null!;
+    private OptionButton _priority1 = null!;
+    private OptionButton _priority2 = null!;
+    private OptionButton _priority3 = null!;
     private HBoxContainer _headers = null!;
     private VBoxContainer _rows = null!;
     private bool _mapWasOpen;
@@ -92,8 +95,10 @@ internal partial class RoutePanelLayer : CanvasLayer
         if (!IsInsideTree())
             return;
 
-        if (_autoSelectSuggested is not null)
-            _autoSelectSuggested.SetPressedNoSignal(SpireGpsSettings.AutoHighlightPreferredRoute);
+        _autoSelectSuggested.SetPressedNoSignal(SpireGpsSettings.AutoHighlightPreferredRoute);
+        SetPrioritySelection(_priority1, SpireGpsSettings.RoutePriority1);
+        SetPrioritySelection(_priority2, SpireGpsSettings.RoutePriority2);
+        SetPrioritySelection(_priority3, SpireGpsSettings.RoutePriority3);
 
         RebuildHeaders();
         RebuildRows();
@@ -137,6 +142,28 @@ internal partial class RoutePanelLayer : CanvasLayer
         _autoSelectSuggested.Toggled += OnAutoSelectSuggestedToggled;
         outer.AddChild(_autoSelectSuggested);
 
+        var priorityRow = new HBoxContainer
+        {
+            Alignment = BoxContainer.AlignmentMode.Center
+        };
+        priorityRow.AddThemeConstantOverride("separation", 5);
+        priorityRow.AddChild(new Label
+        {
+            Text = "Priority:",
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        _priority1 = CreatePriorityDropdown(SpireGpsSettings.RoutePriority1, 1);
+        _priority2 = CreatePriorityDropdown(SpireGpsSettings.RoutePriority2, 2);
+        _priority3 = CreatePriorityDropdown(SpireGpsSettings.RoutePriority3, 3);
+
+        priorityRow.AddChild(_priority1);
+        priorityRow.AddChild(new Label { Text = ">", VerticalAlignment = VerticalAlignment.Center });
+        priorityRow.AddChild(_priority2);
+        priorityRow.AddChild(new Label { Text = ">", VerticalAlignment = VerticalAlignment.Center });
+        priorityRow.AddChild(_priority3);
+        outer.AddChild(priorityRow);
+
         _headers = new HBoxContainer();
         _headers.AddThemeConstantOverride("separation", 2);
         outer.AddChild(_headers);
@@ -158,11 +185,51 @@ internal partial class RoutePanelLayer : CanvasLayer
 
         var help = new Label
         {
-            Text = "Click a Route to highlight it. Click a column heading to sort.",
+            Text = "★ follows priority order, then weighted score. Click a route to highlight it.",
             HorizontalAlignment = HorizontalAlignment.Center
         };
         help.AddThemeFontSizeOverride("font_size", 11);
         outer.AddChild(help);
+    }
+
+    private OptionButton CreatePriorityDropdown(string selected, int slot)
+    {
+        var dropdown = new OptionButton
+        {
+            CustomMinimumSize = new Vector2(120f, RowHeight),
+            TooltipText = $"Suggested-route priority {slot}. Earlier priorities are compared first."
+        };
+
+        foreach (string option in RoutePriority.Options)
+            dropdown.AddItem(option);
+
+        dropdown.Select(RoutePriority.IndexOf(selected));
+        dropdown.ItemSelected += index => OnPriorityChanged(slot, RoutePriority.Options[(int)index]);
+        return dropdown;
+    }
+
+    private static void SetPrioritySelection(OptionButton dropdown, string value)
+    {
+        dropdown.Select(RoutePriority.IndexOf(value));
+    }
+
+    private void OnPriorityChanged(int slot, string value)
+    {
+        switch (slot)
+        {
+            case 1: SpireGpsSettings.RoutePriority1 = value; break;
+            case 2: SpireGpsSettings.RoutePriority2 = value; break;
+            case 3: SpireGpsSettings.RoutePriority3 = value; break;
+        }
+
+        ModConfigBridge.SetValue($"routePriority{slot}", value);
+        RoutePlannerService.RecalculateSuggestion();
+
+        if (RoutePlannerService.CurrentSort == RouteSortMode.Preferred)
+            RoutePlannerService.Sort(RouteSortMode.Preferred, RoutePlannerService.SortDescending);
+
+        RebuildRows();
+        RouteHighlighter.Refresh();
     }
 
     private void OnAutoSelectSuggestedToggled(bool enabled)
@@ -189,7 +256,7 @@ internal partial class RoutePanelLayer : CanvasLayer
         AddHeader("$", RouteSortMode.Shops, CellWidth, "Shops");
         AddHeader("R", RouteSortMode.RestSites, CellWidth, "Campsites / rest sites");
         AddHeader("T", RouteSortMode.Treasures, CellWidth, "Treasure rooms");
-        AddHeader("Score", RouteSortMode.Preferred, ScoreWidth, "Suggested-route score from your configured weights");
+        AddHeader("Score", RouteSortMode.Preferred, ScoreWidth, "Suggested route: priorities first, weighted score as tie-break");
     }
 
     private void AddHeader(string text, RouteSortMode mode, float width, string tooltip)
