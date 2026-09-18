@@ -82,9 +82,9 @@ internal static class ModConfigBridge
                 "Preferred", "Route Order", "Monsters", "Unknowns", "Elites", "Shops", "Rest Sites", "Treasures"),
             Toggle("sortDescending", "Sort Highest First", true),
 
-            Header("Preferred Route"),
-            Toggle("preferredRouteEnabled", "Show Preferred Route", true),
-            Toggle("autoHighlightPreferredRoute", "Auto Highlight Preferred Route", true),
+            Header("Suggested Route"),
+            Toggle("preferredRouteEnabled", "Show Suggested Route", true),
+            Toggle("autoHighlightPreferredRoute", "Auto-select Suggested Route", true),
             Slider("monsterWeight", "Monster Weight", -1f),
             Slider("unknownWeight", "Unknown (?) Weight", 0f),
             Slider("eliteWeight", "Elite Weight", 2f),
@@ -148,6 +148,22 @@ internal static class ModConfigBridge
         Set(e, "Options", options);
         Set(e, "OnChanged", new Action<object>(v => ApplyAndRefresh(key, v)));
     });
+
+    internal static void SetValue(string key, object value)
+    {
+        if (!_registered || _apiType is null)
+            return;
+
+        try
+        {
+            _apiType.GetMethod("SetValue", BindingFlags.Public | BindingFlags.Static)
+                ?.Invoke(null, new object[] { MainFile.ModId, key, value });
+        }
+        catch (Exception ex)
+        {
+            MainFile.Logger.Warn($"ModConfig SetValue failed for {key}: {ex.Message}");
+        }
+    }
 
     private static void ApplyAndRefresh(string key, object value)
     {
