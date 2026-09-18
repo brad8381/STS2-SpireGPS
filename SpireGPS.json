@@ -1,8 +1,8 @@
 {
   "id": "SpireGPS",
-  "name": "SpireGPS",
+  "name": "Banter's Tweak's",
   "author": "Brad Wilson",
-  "description": "A modular quality-of-life toolkit for Slay the Spire 2 with route planning, safety guards, relic tracking, synergy hints, wishlists, and multiplayer pings.",
+  "description": "A modular quality-of-life tweak pack for Slay the Spire 2 with route planning, safety guards, relic tracking, synergy hints, wishlists, and multiplayer pings.",
   "version": "0.1.0",
   "min_game_version": "0.107.0",
   "has_pck": false,
