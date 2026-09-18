@@ -41,6 +41,8 @@ internal static class TurnGuardService
     {
         var warnings = new List<string>();
         var pcs = player.PlayerCombatState;
+        if (pcs is null)
+            return warnings;
 
         if (SpireGpsSettings.TurnGuardWarnPlayableCards && pcs.HasCardsToPlay())
             warnings.Add("playable cards remain");
@@ -102,8 +104,15 @@ internal static class TurnGuardService
             return;
         }
 
+        var pcs = me.PlayerCombatState;
+        if (pcs is null)
+        {
+            ResetSnapshot();
+            return;
+        }
+
         bool ready = CombatManager.Instance.IsPlayerReadyToEndTurn(me);
-        int energy = me.PlayerCombatState.Energy;
+        int energy = pcs.Energy;
         int handHash = CalculateHandHash(me);
 
         if (ready && _lastReady && !CombatManager.Instance.AllPlayersReadyToEndTurn() &&
@@ -126,7 +135,12 @@ internal static class TurnGuardService
         unchecked
         {
             int hash = 17;
-            foreach (var card in player.PlayerCombatState.Hand.Cards)
+            var pcs = player.PlayerCombatState;
+            var hand = pcs?.Hand;
+            if (hand is null)
+                return hash;
+
+            foreach (var card in hand.Cards)
                 hash = hash * 31 + RuntimeHelpers.GetHashCode(card);
             return hash;
         }
