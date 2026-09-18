@@ -3,6 +3,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Runs;
 using SpireGPS.Config;
+using SpireGPS.Features.DrawingPalette;
 using SpireGPS.Features.RoutePlanner;
 using SpireGPS.Features.TurnGuard;
 using SpireGPS.UI;
@@ -44,6 +45,7 @@ public partial class MainFile : Node
     private static void OnRunStarted(RunState runState)
     {
         RunState = runState;
+        DrawingPaletteService.ResetForRun();
         RefreshRoutes();
     }
 
