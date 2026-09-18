@@ -108,6 +108,17 @@ internal static class ModConfigBridge
 
             Header("Banter's Tweak's - Relic Progress"),
             Toggle("relicTrackerEnabled", "Enable Relic Progress", true),
+            Toggle("relicTrackerShowProgressFraction", "Show Progress Fractions", true),
+            Toggle("relicTrackerShowReady", "Show Ready Indicator", true),
+
+            Header("Banter's Tweak's - Drawing Palette"),
+            Toggle("drawingPaletteEnabled", "Enable Drawing Palette", true),
+            Toggle("drawingPaletteExclusiveColors", "Exclusive Multiplayer Colors", true),
+
+            Header("Banter's Tweak's - Map Legend"),
+            Toggle("mapLegendEnabled", "Enable Map Legend Tweaks", true),
+            Toggle("mapLegendVisible", "Show Map Legend", true),
+            Toggle("mapLegendMovable", "Allow Moving Map Legend", true),
 
             Header("Banter's Tweak's - Synergy Hints"),
             Toggle("synergyHintsEnabled", "Enable Synergy Hints", true),
@@ -228,6 +239,16 @@ internal static class ModConfigBridge
         Load("turnGuardEnabled", true);
         Load("potionGuardEnabled", true);
         Load("relicTrackerEnabled", true);
+        Load("relicTrackerShowProgressFraction", true);
+        Load("relicTrackerShowReady", true);
+
+        Load("drawingPaletteEnabled", true);
+        Load("drawingPaletteExclusiveColors", true);
+
+        Load("mapLegendEnabled", true);
+        Load("mapLegendVisible", true);
+        Load("mapLegendMovable", true);
+
         Load("synergyHintsEnabled", true);
         Load("wishlistEnabled", true);
         Load("multiplayerPingsEnabled", true);
