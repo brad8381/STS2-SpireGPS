@@ -12,7 +12,7 @@ The idea is simple: surface useful information, prevent accidental inputs, and m
 - **Banter's Tweak's - Turn Guard** - warns before accidental end turns for playable cards, remaining energy, and potentially lethal incoming damage.
 - **Banter's Tweak's - Potion Guard** - prevents accidental potion discards by requiring confirmation.
 - **Banter's Tweak's - Relic Progress** - native-style progress fractions and ready indicators for relevant counter relics.
-- **Banter's Tweak's - Drawing Palette** - selectable map drawing colours with unique multiplayer colour assignments.
+- **Banter's Tweak's - Drawing Palette** - fixed map drawing palette with unique multiplayer colour assignments and deterministic conflict resolution. Automatically yields to BetterDrawing and ColorDrawLib.
 - **Banter's Tweak's - Map Legend** - hide/show the vanilla map legend and move it to a preferred position.
 - **Banter's Tweak's - Synergy Hints** - planned mechanical interaction hints for offered cards and relics.
 - **Banter's Tweak's - Build Wishlist** - planned wishlist marking for cards and relics.
@@ -83,3 +83,15 @@ Queued next:
 - Build Wishlist
 - Synergy Hints
 - Multiplayer Pings
+
+
+## Compatibility
+
+Banter's Tweak's defaults to yielding when another QoL mod owns the same hook.
+
+- **Minty Spire 2** - compatible with Turn Guard. Minty only attaches relic reminder UI to the End Turn button; Banter's guards the release action.
+- **BetterDrawing** - Banter's Drawing Palette disables itself to avoid duplicate drawing controls and line-colour patches.
+- **ColorDrawLib** - Banter's Drawing Palette disables itself to avoid duplicate drawing controls and colour protocols.
+- **Other End Turn mods** - if another Harmony Prefix or Transpiler owns `NEndTurnButton.CallReleaseLogic`, Banter's Turn Guard yields by default.
+
+This behaviour can be overridden with **Yield to Overlapping QoL Mods** in ModConfig.
