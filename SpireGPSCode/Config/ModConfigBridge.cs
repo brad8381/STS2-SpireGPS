@@ -2,6 +2,7 @@ using System.Reflection;
 using Godot;
 using SpireGPS.Features.DrawingPalette;
 using SpireGPS.Features.MapLegend;
+using SpireGPS.Features.Wishlist;
 
 namespace SpireGPS.Config;
 
@@ -218,6 +219,8 @@ internal static class ModConfigBridge
             DrawingPaletteService.ApplySettingsChanged(key);
         if (key.StartsWith("mapLegend", StringComparison.OrdinalIgnoreCase))
             MapLegendService.ApplySettingsChanged(key);
+        if (key == "wishlistEnabled")
+            WishlistService.RefreshAllStars();
     }
 
     private static bool IsRouteSetting(string key)
