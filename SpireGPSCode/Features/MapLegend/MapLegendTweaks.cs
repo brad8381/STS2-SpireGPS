@@ -264,7 +264,7 @@ internal partial class MapLegendControls : PanelContainer
 
     public MapLegendControls()
     {
-        MouseFilter = MouseFilterEnum.Stop;
+        MouseFilter = Control.MouseFilterEnum.Stop;
         ProcessMode = ProcessModeEnum.Always;
         CustomMinimumSize = new Vector2(210f, 34f);
     }
@@ -299,14 +299,14 @@ internal partial class MapLegendControls : PanelContainer
             Text = "Move",
             TooltipText = "Drag to move the map legend.",
             CustomMinimumSize = new Vector2(70f, 28f),
-            FocusMode = FocusModeEnum.None
+            FocusMode = Control.FocusModeEnum.None
         };
         row.AddChild(_move);
 
         _visibility = new Button
         {
             CustomMinimumSize = new Vector2(65f, 28f),
-            FocusMode = FocusModeEnum.None
+            FocusMode = Control.FocusModeEnum.None
         };
         _visibility.Pressed += MapLegendService.ToggleVisible;
         row.AddChild(_visibility);
@@ -316,7 +316,7 @@ internal partial class MapLegendControls : PanelContainer
             Text = "Reset",
             TooltipText = "Reset the map legend to its vanilla position.",
             CustomMinimumSize = new Vector2(65f, 28f),
-            FocusMode = FocusModeEnum.None
+            FocusMode = Control.FocusModeEnum.None
         };
         _reset.Pressed += MapLegendService.ResetPosition;
         row.AddChild(_reset);
