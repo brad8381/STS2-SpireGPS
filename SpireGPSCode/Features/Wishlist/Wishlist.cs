@@ -26,8 +26,8 @@ internal static class WishlistService
     private static readonly FieldInfo? MerchantCardNodeField =
         AccessTools.Field(typeof(NMerchantCard), "_cardNode");
 
-    private static readonly FieldInfo? MerchantRelicField =
-        AccessTools.Field(typeof(NMerchantRelic), "_relic");
+    private static readonly FieldInfo? MerchantRelicNodeField =
+        AccessTools.Field(typeof(NMerchantRelic), "_relicNode");
 
     internal static bool IsCardWishlisted(CardModel? card)
         => card is not null &&
@@ -41,7 +41,7 @@ internal static class WishlistService
     {
         bool next = !IsCardWishlisted(card);
         LocalPreferences.Set(CardSection, card.Id.ToString(), next);
-        SpireGpsToast.Show($"Wishlist: {(next ? "added" : "removed")} {card.Title.GetFormattedText()}.");
+        SpireGpsToast.Show($"Wishlist: {(next ? "added" : "removed")} {card.Title}.");
         RefreshAllStars();
     }
 
@@ -104,7 +104,11 @@ internal static class WishlistService
 
     internal static void RefreshMerchantRelic(NMerchantRelic merchant)
     {
-        var relic = MerchantRelicField?.GetValue(merchant) as RelicModel;
+        var relicNode = MerchantRelicNodeField?.GetValue(merchant) as NRelic;
+        RelicModel? relic = null;
+        try { relic = relicNode?.Model; }
+        catch { }
+
         SetStar(
             merchant,
             SpireGpsSettings.WishlistEnabled && IsRelicWishlisted(relic),
@@ -128,7 +132,7 @@ internal static class WishlistService
     internal static void ClearCardPressState(NCardHolder holder)
         => CurrentPressedActionField?.SetValue(holder, null);
 
-    private static void RefreshAllStars()
+    internal static void RefreshAllStars()
     {
         if (Engine.GetMainLoop() is not SceneTree tree)
             return;
@@ -234,7 +238,7 @@ internal static class WishlistGridCardReassignPatch
 [HarmonyPatch(typeof(NClickableControl), nameof(NClickableControl._GuiInput))]
 internal static class WishlistRelicRightClickPatch
 {
-    private static void Prefix(NClickableControl __instance, InputEvent inputEvent)
+    private static bool Prefix(NClickableControl __instance, InputEvent inputEvent)
     {
         if (!SpireGpsSettings.WishlistEnabled ||
             __instance is not NRelicCollectionEntry entry ||
@@ -243,11 +247,12 @@ internal static class WishlistRelicRightClickPatch
             mouse.Pressed ||
             mouse.ButtonIndex != MouseButton.Right)
         {
-            return;
+            return true;
         }
 
         WishlistService.ToggleRelic(entry.relic);
         entry.AcceptEvent();
+        return false;
     }
 }
 
