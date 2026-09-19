@@ -6,6 +6,8 @@ using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
+using MegaCrit.Sts2.Core.Nodes.Relics;
+using MegaCrit.Sts2.Core.Nodes.Screens.RelicCollection;
 using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
 using SpireGPS.Config;
 
@@ -17,6 +19,9 @@ internal static class SynergyHintService
 
     private static readonly FieldInfo? MerchantCardNodeField =
         AccessTools.Field(typeof(NMerchantCard), "_cardNode");
+
+    private static readonly FieldInfo? MerchantRelicNodeField =
+        AccessTools.Field(typeof(NMerchantRelic), "_relicNode");
 
     internal static IReadOnlyList<string> GetHints(CardModel? offered)
     {
@@ -91,6 +96,96 @@ internal static class SynergyHintService
             .ToArray();
     }
 
+    internal static IReadOnlyList<string> GetHints(RelicModel? offered)
+    {
+        if (!SpireGpsSettings.SynergyHintsEnabled || offered is null || MainFile.RunState is null)
+            return Array.Empty<string>();
+
+        var player = LocalContext.GetMe(MainFile.RunState);
+        if (player is null)
+            return Array.Empty<string>();
+
+        var deck = player.Deck.Cards;
+        string relicType = offered.GetType().Name;
+        var hints = new List<string>();
+
+        int attacks = deck.Count(card => card.Type == CardType.Attack);
+        int skills = deck.Count(card => card.Type == CardType.Skill);
+        int powers = deck.Count(card => card.Type == CardType.Power);
+        int exhaustCards = deck.Count(card =>
+            card.Keywords.Contains(CardKeyword.Exhaust) ||
+            card.Keywords.Contains(CardKeyword.Ethereal));
+        int exhaustSkills = deck.Count(card =>
+            card.Type == CardType.Skill &&
+            (card.Keywords.Contains(CardKeyword.Exhaust) ||
+             card.Keywords.Contains(CardKeyword.Ethereal)));
+
+        switch (relicType)
+        {
+            case "MummifiedHand" when powers > 0:
+                hints.Add($"{powers} Power {(powers == 1 ? "card" : "cards")} in your deck can trigger Mummified Hand.");
+                break;
+
+            case "LetterOpener" when skills > 0:
+                hints.Add($"{skills} {(skills == 1 ? "Skill" : "Skills")} in your deck can advance Letter Opener.");
+                break;
+
+            case "PenNib" when attacks > 0:
+                hints.Add($"{attacks} {(attacks == 1 ? "Attack" : "Attacks")} in your deck can advance Pen Nib.");
+                break;
+
+            case "Nunchaku" when attacks > 0:
+                hints.Add($"{attacks} {(attacks == 1 ? "Attack" : "Attacks")} in your deck can advance Nunchaku.");
+                break;
+
+            case "Kunai" when attacks > 0:
+            case "Shuriken" when attacks > 0:
+            case "OrnamentalFan" when attacks > 0:
+                hints.Add($"{attacks} {(attacks == 1 ? "Attack" : "Attacks")} in your deck interact with {offered.Title.GetFormattedText()}.");
+                break;
+
+            case "JossPaper" when exhaustCards > 0:
+                hints.Add($"{exhaustCards} Exhaust/Ethereal {(exhaustCards == 1 ? "card" : "cards")} in your deck can advance Joss Paper.");
+                break;
+
+            case "BurningSticks" when exhaustSkills > 0:
+                hints.Add($"{exhaustSkills} Exhaust/Ethereal {(exhaustSkills == 1 ? "Skill" : "Skills")} in your deck can trigger Burning Sticks.");
+                break;
+        }
+
+        return hints
+            .Take(Math.Max(1, SpireGpsSettings.SynergyHintsMax))
+            .ToArray();
+    }
+
+    internal static void RefreshRelicCollection(NRelicCollectionEntry entry)
+    {
+        RelicModel? relic = entry.ModelVisibility == MegaCrit.Sts2.Core.Entities.UI.ModelVisibility.Visible
+            ? entry.relic
+            : null;
+
+        SetHint(entry, GetHints(relic), new Vector2(0f, 62f));
+    }
+
+    internal static void RefreshBasicRelic(NRelicBasicHolder holder)
+    {
+        RelicModel? relic = null;
+        try { relic = holder.Relic?.Model; }
+        catch { }
+
+        SetHint(holder, GetHints(relic), new Vector2(0f, 62f));
+    }
+
+    internal static void RefreshMerchantRelic(NMerchantRelic merchant)
+    {
+        var relicNode = MerchantRelicNodeField?.GetValue(merchant) as NRelic;
+        RelicModel? relic = null;
+        try { relic = relicNode?.Model; }
+        catch { }
+
+        SetHint(merchant, GetHints(relic), new Vector2(0f, 70f));
+    }
+
     internal static void RefreshGridCard(NGridCardHolder holder)
     {
         SetHint(
@@ -118,6 +213,15 @@ internal static class SynergyHintService
 
         foreach (var merchant in FindNodes<NMerchantCard>(tree.Root))
             RefreshMerchantCard(merchant);
+
+        foreach (var entry in FindNodes<NRelicCollectionEntry>(tree.Root))
+            RefreshRelicCollection(entry);
+
+        foreach (var holder in FindNodes<NRelicBasicHolder>(tree.Root))
+            RefreshBasicRelic(holder);
+
+        foreach (var merchant in FindNodes<NMerchantRelic>(tree.Root))
+            RefreshMerchantRelic(merchant);
     }
 
     private static void SetHint(Control owner, IReadOnlyList<string> hints, Vector2 position)
@@ -182,4 +286,26 @@ internal static class SynergyMerchantCardPatch
 {
     private static void Postfix(NMerchantCard __instance)
         => SynergyHintService.RefreshMerchantCard(__instance);
+}
+
+
+[HarmonyPatch(typeof(NRelicCollectionEntry), nameof(NRelicCollectionEntry._Ready))]
+internal static class SynergyRelicCollectionPatch
+{
+    private static void Postfix(NRelicCollectionEntry __instance)
+        => SynergyHintService.RefreshRelicCollection(__instance);
+}
+
+[HarmonyPatch(typeof(NRelicBasicHolder), nameof(NRelicBasicHolder._Ready))]
+internal static class SynergyBasicRelicPatch
+{
+    private static void Postfix(NRelicBasicHolder __instance)
+        => SynergyHintService.RefreshBasicRelic(__instance);
+}
+
+[HarmonyPatch(typeof(NMerchantRelic), "UpdateVisual")]
+internal static class SynergyMerchantRelicPatch
+{
+    private static void Postfix(NMerchantRelic __instance)
+        => SynergyHintService.RefreshMerchantRelic(__instance);
 }
