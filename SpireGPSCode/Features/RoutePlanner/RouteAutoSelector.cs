@@ -96,7 +96,7 @@ internal static class RouteAutoSelector
 
         _dialog = new ConfirmationDialog
         {
-            Title = "Banter's Tweak's - Route Planner",
+            Title = "Route Planner",
             DialogText = $"Travel to the next node on Route {route.Index}: {Describe(node.Point.PointType)}?",
             OkButtonText = "Travel",
             CancelButtonText = "Cancel",
