@@ -236,13 +236,13 @@ public sealed class MultiplayerPingMessage : INetMessage, IPacketSerializable
     public void Serialize(PacketWriter writer)
     {
         writer.WriteUInt(TargetCombatId);
-        writer.WriteInt(Kind, 4);
+        writer.WriteUInt((uint)Kind, 4);
     }
 
     public void Deserialize(PacketReader reader)
     {
         TargetCombatId = reader.ReadUInt();
-        Kind = reader.ReadInt(4);
+        Kind = (int)reader.ReadUInt(4);
     }
 }
 
