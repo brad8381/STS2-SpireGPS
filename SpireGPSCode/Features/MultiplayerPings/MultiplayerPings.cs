@@ -5,6 +5,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Multiplayer.Transport;
 using MegaCrit.Sts2.Core.Nodes.Combat;
+using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using SpireGPS.Config;
@@ -86,18 +87,52 @@ internal static class MultiplayerPingService
         if (creature.Entity.CombatId is not uint combatId)
             return;
 
-        ShowMenu(creature, combatId, mouse.GlobalPosition);
+        ShowMenu(creature.Entity.IsEnemy, combatId, mouse.GlobalPosition);
         creature.Hitbox.AcceptEvent();
     }
 
-    private static void ShowMenu(NCreature creature, uint combatId, Vector2 screenPosition)
+    internal static void AttachToPlayerState(NMultiplayerPlayerState playerState)
+    {
+        if (!SpireGpsSettings.MultiplayerPingsEnabled)
+            return;
+
+        EnsureNetwork();
+
+        if (!IsMultiplayer() || playerState.Hitbox.HasMeta("banter_ping_hook"))
+            return;
+
+        playerState.Hitbox.SetMeta("banter_ping_hook", true);
+        playerState.Hitbox.Connect(
+            Control.SignalName.GuiInput,
+            Callable.From<InputEvent>(evt => OnPlayerStateInput(playerState, evt)));
+    }
+
+    private static void OnPlayerStateInput(NMultiplayerPlayerState playerState, InputEvent evt)
+    {
+        if (!SpireGpsSettings.MultiplayerPingsEnabled ||
+            !IsMultiplayer() ||
+            evt is not InputEventMouseButton mouse ||
+            mouse.Pressed ||
+            mouse.ButtonIndex != MouseButton.Right)
+        {
+            return;
+        }
+
+        if (playerState.Player.Creature.CombatId is not uint combatId)
+            return;
+
+        ShowMenu(false, combatId, mouse.GlobalPosition);
+        playerState.Hitbox.AcceptEvent();
+    }
+
+    private static void ShowMenu(bool isEnemy, uint combatId, Vector2 screenPosition)
     {
         var menu = new PopupMenu
         {
             Name = "PingMenu"
         };
 
-        if (creature.Entity.IsEnemy)
+        if (isEnemy)
         {
             Add(menu, "Attack", PingKind.Attack);
             Add(menu, "Focus", PingKind.Focus);
@@ -328,6 +363,23 @@ internal static class MultiplayerPingCreaturePatch
         catch (Exception ex)
         {
             MainFile.Logger.Error($"Multiplayer Pings setup failed open: {ex}");
+        }
+    }
+}
+
+
+[HarmonyPatch(typeof(NMultiplayerPlayerState), nameof(NMultiplayerPlayerState._Ready))]
+internal static class MultiplayerPingPlayerStatePatch
+{
+    private static void Postfix(NMultiplayerPlayerState __instance)
+    {
+        try
+        {
+            MultiplayerPingService.AttachToPlayerState(__instance);
+        }
+        catch (Exception ex)
+        {
+            MainFile.Logger.Error($"Multiplayer Pings player-state setup failed open: {ex}");
         }
     }
 }
