@@ -12,11 +12,11 @@ The idea is simple: surface useful information, prevent accidental inputs, and m
 - **Banter's Tweak's - Turn Guard** - warns before accidental end turns for playable cards, remaining energy, and potentially lethal incoming damage.
 - **Banter's Tweak's - Potion Guard** - prevents accidental potion discards by requiring confirmation.
 - **Banter's Tweak's - Relic Progress** - native-style progress fractions and ready indicators for relevant counter relics.
-- **Banter's Tweak's - Drawing Palette** - fixed map drawing palette with unique multiplayer colour assignments and deterministic conflict resolution. Automatically yields to BetterDrawing and ColorDrawLib.
-- **Banter's Tweak's - Map Legend** - hide/show the vanilla map legend and move it to a preferred position.
-- **Banter's Tweak's - Synergy Hints** - planned mechanical interaction hints for offered cards and relics.
-- **Banter's Tweak's - Build Wishlist** - planned wishlist marking for cards and relics.
-- **Banter's Tweak's - Multiplayer Pings** - planned lightweight tactical pings.
+- **Banter's Tweak's - Drawing Palette** - fixed map drawing palette with unique multiplayer colour assignments, saved per-player colour behaviour, and optional host override. Automatically yields to BetterDrawing and ColorDrawLib.
+- **Banter's Tweak's - Map Legend** - hide/show the vanilla map legend, drag it to a preferred position, persist the position locally, or reset it.
+- **Banter's Tweak's - Synergy Hints** - factual mechanical interaction hints between offered cards/relics and cards/relics already in your build.
+- **Banter's Tweak's - Build Wishlist** - right-click visible cards/relics in the compendium to wishlist them and show a star when they appear later.
+- **Banter's Tweak's - Multiplayer Pings** - right-click enemies, player creatures, or multiplayer player portraits for short synchronized tactical pings.
 
 All main modules default to enabled. The existing community **ModConfig** mod is recommended but is not a dependency. Without ModConfig, Banter's Tweak's uses built-in defaults.
 
@@ -77,12 +77,14 @@ Implemented for the current v0.1 development branch:
 - Relic Progress fractions and ready indicators
 - Shared warning/toast UI
 
-Queued next:
+Also implemented on the current development branch:
+
 - Drawing Palette with exclusive multiplayer colours
+- Per-player "Recolor old" drawing behaviour plus host force option
 - Map Legend hide/show, move, remember position, and reset
-- Build Wishlist
-- Synergy Hints
-- Multiplayer Pings
+- Build Wishlist for cards and relics
+- Synergy Hints for cards and relics
+- Multiplayer combat pings
 
 
 ## Compatibility
