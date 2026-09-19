@@ -3,7 +3,9 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
+using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.MonsterMoves.Intents;
 using MegaCrit.Sts2.Core.Nodes.Combat;
@@ -45,10 +47,23 @@ internal static class TurnGuardService
         if (pcs is null)
             return warnings;
 
-        if (SpireGpsSettings.TurnGuardWarnPlayableCards && pcs.HasCardsToPlay())
+        var livingEnemies = player.Creature.CombatState?.Enemies
+            .Where(e => e.IsAlive)
+            .ToArray() ?? Array.Empty<Creature>();
+
+        // If every living enemy is guaranteed to die at the start of its turn
+        // before it can act, ending the turn is already the sensible action.
+        if (livingEnemies.Length > 0 && livingEnemies.All(WillDieBeforeActing))
+            return warnings;
+
+        bool hasPlayableCards = pcs.HasCardsToPlay();
+
+        if (SpireGpsSettings.TurnGuardWarnPlayableCards && hasPlayableCards)
             warnings.Add("playable cards remain");
 
-        if (SpireGpsSettings.TurnGuardWarnEnergy && pcs.Energy > 0)
+        // Energy on its own is not actionable. Only mention it when there is
+        // still a card the player can actually play.
+        if (SpireGpsSettings.TurnGuardWarnEnergy && hasPlayableCards && pcs.Energy > 0)
             warnings.Add($"{pcs.Energy} energy remains");
 
         if (SpireGpsSettings.TurnGuardWarnLethal && IsLethalIncoming(player, out int incoming))
@@ -69,6 +84,11 @@ internal static class TurnGuardService
             var targets = state.PlayerCreatures;
             foreach (var enemy in state.Enemies.Where(e => e.IsAlive))
             {
+                // Poison/Plague lethal at turn start means this enemy never
+                // reaches its move, so its intent should not count as incoming.
+                if (WillDieBeforeActing(enemy))
+                    continue;
+
                 var monster = enemy.Monster;
                 if (monster is null) continue;
 
@@ -88,6 +108,33 @@ internal static class TurnGuardService
             incoming = 0;
             return false;
         }
+    }
+
+    private static bool WillDieBeforeActing(Creature enemy)
+    {
+        try
+        {
+            var poison = enemy.GetPower<PoisonPower>();
+            if (poison is not null && poison.CalculateTotalDamageNextTurn() >= enemy.CurrentHp)
+                return true;
+
+            // Optional compatibility with The Plaguebringer without taking a
+            // compile-time dependency on that mod. Plague ticks at the start
+            // of the affected creature's turn and ignores Block.
+            var plague = enemy.Powers.FirstOrDefault(power =>
+                power.GetType().FullName == "PB.Powers.PlaguePower" ||
+                (power.GetType().Name == "PlaguePower" &&
+                 string.Equals(power.GetType().Assembly.GetName().Name, "PlagueBringer", StringComparison.OrdinalIgnoreCase)));
+
+            if (plague is not null && plague.Amount >= enemy.CurrentHp)
+                return true;
+        }
+        catch (Exception ex)
+        {
+            MainFile.Logger.Warn($"Turn Guard automatic-kill check skipped: {ex.Message}");
+        }
+
+        return false;
     }
 
     private static void OnCombatStateChanged(CombatState state)
@@ -119,10 +166,10 @@ internal static class TurnGuardService
         if (ready && _lastReady && !CombatManager.Instance.AllPlayersReadyToEndTurn() &&
             (energy != _lastEnergy || handHash != _lastHandHash))
         {
-            MainFile.Logger.Info("Banter's Tweak's - Turn Guard: hand/energy changed after ready; undoing end turn.");
+            MainFile.Logger.Info("Turn Guard: hand/energy changed after ready; undoing end turn.");
             RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(
                 new UndoEndPlayerTurnAction(me, state.RoundNumber));
-            SpireGpsToast.Show("Banter's Tweak's - Turn Guard: hand or energy changed - unreadying you.");
+            SpireGpsToast.Show("Turn Guard: hand or energy changed - unreadying you.");
             ready = false;
         }
 
@@ -195,7 +242,7 @@ internal static class EndTurnGuardPatch
             _armedUntil = now + (ulong)(Math.Max(0.5f, SpireGpsSettings.TurnGuardConfirmSeconds) * 1000f);
 
             SpireGpsToast.Show(
-                "Banter's Tweak's - Turn Guard: " + string.Join(" • ", warnings) + ". Click End Turn again to confirm.",
+                "Turn Guard: " + string.Join(" • ", warnings) + ". Click End Turn again to confirm.",
                 SpireGpsSettings.TurnGuardConfirmSeconds);
             return false;
         }
