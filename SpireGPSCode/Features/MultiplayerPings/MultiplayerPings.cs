@@ -112,13 +112,21 @@ internal static class MultiplayerPingService
             Add(menu, "Wait", PingKind.Wait);
         }
 
-        menu.IdPressed += id =>
-        {
-            SendPing(combatId, (PingKind)id);
-            menu.QueueFree();
-        };
+        menu.Connect(
+            new StringName("id_pressed"),
+            Callable.From<long>(id =>
+            {
+                SendPing(combatId, (PingKind)id);
+                menu.QueueFree();
+            }));
 
-        menu.PopupHide += menu.QueueFree;
+        menu.Connect(
+            new StringName("popup_hide"),
+            Callable.From(() =>
+            {
+                if (GodotObject.IsInstanceValid(menu))
+                    menu.QueueFree();
+            }));
 
         NGame.Instance.AddChild(menu);
         menu.Position = new Vector2I((int)screenPosition.X, (int)screenPosition.Y);
@@ -223,7 +231,9 @@ internal partial class PingOverlay : CanvasLayer
             existing.QueueFree();
 
         var bubble = new PingBubble(target, kind);
-        bubble.TreeExiting += () => _active.Remove(key);
+        bubble.Connect(
+            Node.SignalName.TreeExiting,
+            Callable.From(() => _active.Remove(key)));
         _active[key] = bubble;
         AddChild(bubble);
     }
