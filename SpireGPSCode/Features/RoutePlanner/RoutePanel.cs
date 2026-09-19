@@ -125,7 +125,7 @@ internal partial class RoutePanelLayer : CanvasLayer
 
         var title = new Label
         {
-            Text = "Banter's Tweak's - Route Planner",
+            Text = "Route Planner",
             HorizontalAlignment = HorizontalAlignment.Center
         };
         title.AddThemeFontSizeOverride("font_size", 18);
@@ -167,7 +167,7 @@ internal partial class RoutePanelLayer : CanvasLayer
         {
             Text = "Confirm before auto-travel",
             ButtonPressed = SpireGpsSettings.ConfirmAutoTravel,
-            TooltipText = "Show a confirmation before Banter's Tweak's selects the next map node.",
+            TooltipText = "Show a confirmation before Route Planner selects the next map node.",
         };
         _confirmAutoTravel.Toggled += OnConfirmAutoTravelToggled;
         travelRow.AddChild(_confirmAutoTravel);
