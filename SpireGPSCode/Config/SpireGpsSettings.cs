@@ -54,6 +54,7 @@ internal static class SpireGpsSettings
     internal static bool MapLegendMovable { get; set; } = true;
 
     internal static bool SynergyHintsEnabled { get; set; } = true;
+    internal static int SynergyHintsMax { get; set; } = 3;
     internal static bool WishlistEnabled { get; set; } = true;
     internal static bool MultiplayerPingsEnabled { get; set; } = true;
 
@@ -110,6 +111,7 @@ internal static class SpireGpsSettings
             case "mapLegendMovable": MapLegendMovable = Convert.ToBoolean(value); break;
 
             case "synergyHintsEnabled": SynergyHintsEnabled = Convert.ToBoolean(value); break;
+            case "synergyHintsMax": SynergyHintsMax = Math.Clamp(Convert.ToInt32(value), 1, 6); break;
             case "wishlistEnabled": WishlistEnabled = Convert.ToBoolean(value); break;
             case "multiplayerPingsEnabled": MultiplayerPingsEnabled = Convert.ToBoolean(value); break;
         }
