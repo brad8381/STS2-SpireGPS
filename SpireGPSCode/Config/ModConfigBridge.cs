@@ -2,6 +2,7 @@ using System.Reflection;
 using Godot;
 using SpireGPS.Features.DrawingPalette;
 using SpireGPS.Features.MapLegend;
+using SpireGPS.Features.SynergyHints;
 using SpireGPS.Features.Wishlist;
 
 namespace SpireGPS.Config;
@@ -143,6 +144,7 @@ internal static class ModConfigBridge
 
             Header("Synergy Hints"),
             Toggle("synergyHintsEnabled", "Enable Synergy Hints", true),
+            SliderRange("synergyHintsMax", "Maximum Hints per Item", 3f, 1f, 6f, 1f),
 
             Header("Build Wishlist"),
             Toggle("wishlistEnabled", "Enable Build Wishlist", true),
@@ -185,6 +187,19 @@ internal static class ModConfigBridge
         Set(e, "OnChanged", new Action<object>(v => ApplyAndRefresh(key, v)));
     });
 
+    private static object SliderRange(string key, string label, float defaultValue, float min, float max, float step) => Entry(e =>
+    {
+        Set(e, "Key", key);
+        Set(e, "Label", label);
+        Set(e, "Type", Enum.Parse(_configType!, "Slider"));
+        Set(e, "DefaultValue", defaultValue);
+        Set(e, "Min", min);
+        Set(e, "Max", max);
+        Set(e, "Step", step);
+        Set(e, "Format", "F0");
+        Set(e, "OnChanged", new Action<object>(v => ApplyAndRefresh(key, v)));
+    });
+
     private static object Dropdown(string key, string label, string defaultValue, params string[] options) => Entry(e =>
     {
         Set(e, "Key", key);
@@ -221,6 +236,8 @@ internal static class ModConfigBridge
             MapLegendService.ApplySettingsChanged(key);
         if (key == "wishlistEnabled")
             WishlistService.RefreshAllStars();
+        if (key.StartsWith("synergyHints", StringComparison.OrdinalIgnoreCase))
+            SynergyHintService.RefreshAll();
     }
 
     private static bool IsRouteSetting(string key)
@@ -281,6 +298,7 @@ internal static class ModConfigBridge
         Load("mapLegendMovable", true);
 
         Load("synergyHintsEnabled", true);
+        Load("synergyHintsMax", 3f);
         Load("wishlistEnabled", true);
         Load("multiplayerPingsEnabled", true);
 
