@@ -190,6 +190,6 @@ internal partial class SpireGpsToastLayer : CanvasLayer
 
         _panel.Position = new Vector2(
             Math.Max(12f, (viewport.X - _panel.Size.X) * 0.5f),
-            Math.Max(12f, viewport.Y * 0.68f));
+            Math.Max(12f, viewport.Y * 0.64f));
     }
 }
