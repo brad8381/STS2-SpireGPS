@@ -1,6 +1,7 @@
 using System.Reflection;
 using Godot;
 using SpireGPS.Features.DrawingPalette;
+using SpireGPS.Features.MapLegend;
 
 namespace SpireGPS.Config;
 
@@ -215,6 +216,8 @@ internal static class ModConfigBridge
         if (IsRouteSetting(key)) MainFile.RefreshRoutes();
         if (key.StartsWith("drawingPalette", StringComparison.OrdinalIgnoreCase))
             DrawingPaletteService.ApplySettingsChanged(key);
+        if (key.StartsWith("mapLegend", StringComparison.OrdinalIgnoreCase))
+            MapLegendService.ApplySettingsChanged(key);
     }
 
     private static bool IsRouteSetting(string key)
