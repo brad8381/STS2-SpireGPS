@@ -233,7 +233,11 @@ internal partial class PingOverlay : CanvasLayer
         var bubble = new PingBubble(target, kind);
         bubble.Connect(
             Node.SignalName.TreeExiting,
-            Callable.From(() => _active.Remove(key)));
+            Callable.From(() =>
+            {
+                if (_active.TryGetValue(key, out var current) && ReferenceEquals(current, bubble))
+                    _active.Remove(key);
+            }));
         _active[key] = bubble;
         AddChild(bubble);
     }
