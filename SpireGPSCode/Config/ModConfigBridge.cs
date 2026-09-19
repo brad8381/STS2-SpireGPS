@@ -1,5 +1,6 @@
 using System.Reflection;
 using Godot;
+using SpireGPS.Features.DrawingPalette;
 
 namespace SpireGPS.Config;
 
@@ -9,6 +10,7 @@ internal static class ModConfigBridge
     private static Type? _entryType;
     private static Type? _configType;
     private static bool _registered;
+    internal static bool IsRegistered => _registered;
     private static int _registerAttempts;
     private const int MaxRegisterAttempts = 8;
 
@@ -87,10 +89,10 @@ internal static class ModConfigBridge
 
         var entries = new List<object>
         {
-            Header("Banter's Tweak's - Compatibility"),
+            Header("Compatibility"),
             Toggle("yieldToOverlappingMods", "Yield to Overlapping QoL Mods", true),
 
-            Header("Banter's Tweak's - Route Planner"),
+            Header("Route Planner"),
             Toggle("routePlannerEnabled", "Enable Route Planner", true),
             Toggle("routePanelEnabled", "Show Route List", true),
             Toggle("highlightSelectedRoute", "Highlight Selected Route", true),
@@ -115,33 +117,35 @@ internal static class ModConfigBridge
             Slider("restWeight", "Campsite Weight", 2f),
             Slider("treasureWeight", "Treasure Weight", 1f),
 
-            Header("Banter's Tweak's - Turn Guard"),
+            Header("Turn Guard"),
             Toggle("turnGuardEnabled", "Enable Turn Guard", true),
 
-            Header("Banter's Tweak's - Potion Guard"),
+            Header("Potion Guard"),
             Toggle("potionGuardEnabled", "Enable Potion Guard", true),
 
-            Header("Banter's Tweak's - Relic Progress"),
+            Header("Relic Progress"),
             Toggle("relicTrackerEnabled", "Enable Relic Progress", true),
             Toggle("relicTrackerShowProgressFraction", "Show Progress Fractions", true),
             Toggle("relicTrackerShowReady", "Show Ready Indicator", true),
 
-            Header("Banter's Tweak's - Drawing Palette"),
+            Header("Drawing Palette"),
             Toggle("drawingPaletteEnabled", "Enable Drawing Palette", true),
             Toggle("drawingPaletteExclusiveColors", "Exclusive Multiplayer Colors", true),
+            Toggle("drawingPaletteRecolorExisting", "Recolor Existing Drawings When Color Changes", false),
+            Toggle("drawingPaletteHostForceRecolor", "Host Forces Recolor Mode", false),
 
-            Header("Banter's Tweak's - Map Legend"),
+            Header("Map Legend"),
             Toggle("mapLegendEnabled", "Enable Map Legend Tweaks", true),
             Toggle("mapLegendVisible", "Show Map Legend", true),
             Toggle("mapLegendMovable", "Allow Moving Map Legend", true),
 
-            Header("Banter's Tweak's - Synergy Hints"),
+            Header("Synergy Hints"),
             Toggle("synergyHintsEnabled", "Enable Synergy Hints", true),
 
-            Header("Banter's Tweak's - Build Wishlist"),
+            Header("Build Wishlist"),
             Toggle("wishlistEnabled", "Enable Build Wishlist", true),
 
-            Header("Banter's Tweak's - Multiplayer Pings"),
+            Header("Multiplayer Pings"),
             Toggle("multiplayerPingsEnabled", "Enable Multiplayer Pings", true)
         };
 
@@ -209,6 +213,8 @@ internal static class ModConfigBridge
     {
         SpireGpsSettings.Apply(key, value);
         if (IsRouteSetting(key)) MainFile.RefreshRoutes();
+        if (key.StartsWith("drawingPalette", StringComparison.OrdinalIgnoreCase))
+            DrawingPaletteService.ApplySettingsChanged(key);
     }
 
     private static bool IsRouteSetting(string key)
@@ -261,6 +267,8 @@ internal static class ModConfigBridge
 
         Load("drawingPaletteEnabled", true);
         Load("drawingPaletteExclusiveColors", true);
+        Load("drawingPaletteRecolorExisting", false);
+        Load("drawingPaletteHostForceRecolor", false);
 
         Load("mapLegendEnabled", true);
         Load("mapLegendVisible", true);
