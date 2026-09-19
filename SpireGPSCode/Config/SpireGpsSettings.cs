@@ -46,6 +46,8 @@ internal static class SpireGpsSettings
 
     internal static bool DrawingPaletteEnabled { get; set; } = true;
     internal static bool DrawingPaletteExclusiveMultiplayerColors { get; set; } = true;
+    internal static bool DrawingPaletteRecolorExisting { get; set; } = false;
+    internal static bool DrawingPaletteHostForceRecolor { get; set; } = false;
 
     internal static bool MapLegendEnabled { get; set; } = true;
     internal static bool MapLegendVisible { get; set; } = true;
@@ -100,6 +102,8 @@ internal static class SpireGpsSettings
 
             case "drawingPaletteEnabled": DrawingPaletteEnabled = Convert.ToBoolean(value); break;
             case "drawingPaletteExclusiveColors": DrawingPaletteExclusiveMultiplayerColors = Convert.ToBoolean(value); break;
+            case "drawingPaletteRecolorExisting": DrawingPaletteRecolorExisting = Convert.ToBoolean(value); break;
+            case "drawingPaletteHostForceRecolor": DrawingPaletteHostForceRecolor = Convert.ToBoolean(value); break;
 
             case "mapLegendEnabled": MapLegendEnabled = Convert.ToBoolean(value); break;
             case "mapLegendVisible": MapLegendVisible = Convert.ToBoolean(value); break;
