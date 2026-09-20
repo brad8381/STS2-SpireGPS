@@ -74,7 +74,7 @@ internal static class TradingService
         if (MainFile.RunState is null)
             return Array.Empty<Player>();
 
-        ulong localId = _netService?.NetId ?? LocalContext.NetId?.Value ?? 0;
+        ulong localId = _netService?.NetId ?? LocalContext.NetId ?? 0;
         return MainFile.RunState.Players
             .Where(player => player.NetId != localId)
             .ToArray();
@@ -260,7 +260,7 @@ internal static class TradingService
             dialog.QueueFree();
         };
 
-        dialog.Canceled += dialog.QueueFree;
+        dialog.Canceled += () => dialog.QueueFree();
         tree.Root.AddChild(dialog);
         dialog.PopupCentered(new Vector2I(560, 250));
     }
