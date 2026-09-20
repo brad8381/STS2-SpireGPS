@@ -28,6 +28,7 @@
 
     <Target Name="CopyToModsFolderOnBuild" AfterTargets="PostBuildEvent" Condition="'$(InstallToGame)' == 'true'">
         <RemoveDir Directories="$(ModsPath)SpireGPS/" Condition="Exists('$(ModsPath)SpireGPS/')" />
+        <RemoveDir Directories="$(ModsPath)$(AssemblyName)/" Condition="Exists('$(ModsPath)$(AssemblyName)/')" />
         <MakeDir Directories="$(ModsPath)$(AssemblyName)/" />
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsPath)$(AssemblyName)/" />
         <Copy SourceFiles="$(AssemblyName).json" DestinationFolder="$(ModsPath)$(AssemblyName)/" />
