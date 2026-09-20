@@ -2,7 +2,8 @@
     <Import Project=".\Sts2PathDiscovery.props"/>
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
-        <AssemblyName>SpireGPS</AssemblyName>
+        <AssemblyName>BantersTweaks</AssemblyName>
+        <RootNamespace>SpireGPS</RootNamespace>
         <Version>0.1.0</Version>
         <ImplicitUsings>true</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -26,6 +27,7 @@
     </Target>
 
     <Target Name="CopyToModsFolderOnBuild" AfterTargets="PostBuildEvent" Condition="'$(InstallToGame)' == 'true'">
+        <RemoveDir Directories="$(ModsPath)SpireGPS/" Condition="Exists('$(ModsPath)SpireGPS/')" />
         <MakeDir Directories="$(ModsPath)$(AssemblyName)/" />
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsPath)$(AssemblyName)/" />
         <Copy SourceFiles="$(AssemblyName).json" DestinationFolder="$(ModsPath)$(AssemblyName)/" />
