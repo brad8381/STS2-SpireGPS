@@ -68,6 +68,10 @@ internal static class RelicProgressRegistry
                     threshold = 10;
                     break;
 
+                case "BrilliantScarf":
+                    threshold = model.DynamicVars.Cards.IntValue;
+                    break;
+
                 case "Girya":
                     threshold = 3;
                     canShowReady = false;
