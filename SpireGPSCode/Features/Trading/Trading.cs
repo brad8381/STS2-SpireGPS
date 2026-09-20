@@ -368,6 +368,7 @@ internal static class TradingService
                 _netService.UnregisterMessageHandler<TradeProposalMessage>(HandleProposal);
                 _netService.UnregisterMessageHandler<TradeExecuteMessage>(HandleExecute);
                 _netService.UnregisterMessageHandler<TradePolicyMessage>(HandlePolicy);
+                _netService.UnregisterMessageHandler<TradeCancelMessage>(HandleCancel);
             }
             catch { }
         }
@@ -376,6 +377,7 @@ internal static class TradingService
         _netService.RegisterMessageHandler<TradeProposalMessage>(HandleProposal);
         _netService.RegisterMessageHandler<TradeExecuteMessage>(HandleExecute);
         _netService.RegisterMessageHandler<TradePolicyMessage>(HandlePolicy);
+        _netService.RegisterMessageHandler<TradeCancelMessage>(HandleCancel);
         _handlersRegistered = true;
 
         if (_netService.Type == NetGameType.Host)
@@ -426,6 +428,38 @@ internal static class TradingService
         _hostAllowGold = message.AllowGold;
         _hostAllowGifting = message.AllowGifting;
 
+        RefreshTradeOptionUi();
+        Changed?.Invoke();
+    }
+
+    internal static void ForfeitLocalTrade()
+    {
+        EnsureNetwork();
+
+        var local = GetLocalPlayer();
+        if (_netService is null || local is null || !ReadyPlayers.Contains(local.NetId))
+            return;
+
+        ReadyPlayers.Remove(local.NetId);
+        CompletedPlayers.Add(local.NetId);
+
+        _netService.SendMessage(new TradeCancelMessage
+        {
+            PlayerId = local.NetId
+        });
+
+        _room?.GetNodeOrNull<TradingPanel>(TradePanelName)?.QueueFree();
+        RefreshTradeOptionUi();
+        Changed?.Invoke();
+    }
+
+    private static void HandleCancel(TradeCancelMessage message, ulong senderId)
+    {
+        if (message.PlayerId != senderId)
+            return;
+
+        ReadyPlayers.Remove(message.PlayerId);
+        CompletedPlayers.Add(message.PlayerId);
         RefreshTradeOptionUi();
         Changed?.Invoke();
     }
@@ -809,6 +843,22 @@ public sealed class TradePolicyMessage : INetMessage, IPacketSerializable
         AllowGold = reader.ReadBool();
         AllowGifting = reader.ReadBool();
     }
+}
+
+public sealed class TradeCancelMessage : INetMessage, IPacketSerializable
+{
+    public bool ShouldBroadcast => true;
+    public bool ShouldBuffer => false;
+    public NetTransferMode Mode => NetTransferMode.Reliable;
+    public LogLevel LogLevel => LogLevel.VeryDebug;
+
+    public ulong PlayerId;
+
+    public void Serialize(PacketWriter writer)
+        => writer.WriteULong(PlayerId);
+
+    public void Deserialize(PacketReader reader)
+        => PlayerId = reader.ReadULong();
 }
 
 public sealed class TradeProposalMessage : INetMessage, IPacketSerializable
@@ -1395,5 +1445,17 @@ internal static class TradingRestSiteDescriptionPatch
         }
 
         return false;
+    }
+}
+
+
+[HarmonyPatch(typeof(NRestSiteRoom), "OnProceedButtonReleased")]
+internal static class TradingProceedPatch
+{
+    private static void Prefix()
+    {
+        var local = TradingService.GetLocalPlayer();
+        if (local is not null && TradingService.IsReady(local.NetId))
+            TradingService.ForfeitLocalTrade();
     }
 }
