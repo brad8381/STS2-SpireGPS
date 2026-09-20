@@ -86,6 +86,7 @@ Test several supported counter relics, including Brilliant Scarf.
 - Card compendium: right-click a visible card to add/remove Wishlist.
 - Deck view in a run: right-click a visible card to add/remove Wishlist.
 - Other grid-card screens: Shift+right-click can add/remove Wishlist without stealing normal right-click behavior.
+- Shop card/relic slots: Shift+right-click toggles Wishlist; plain right-click still opens Choice Compare.
 - Card compendium: toggle ★ Wishlisted only and confirm only favourited cards remain.
 - Relic collection: right-click a visible relic to add/remove Wishlist.
 - Restart and confirm Wishlist persists.
