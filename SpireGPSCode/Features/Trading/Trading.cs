@@ -1149,6 +1149,7 @@ internal partial class TradingPanel : PanelContainer
         };
         title.AddThemeFontSizeOverride("font_size", 22);
         top.AddChild(title);
+        PanelDrag.Attach(title, this);
 
         var close = new Button
         {
