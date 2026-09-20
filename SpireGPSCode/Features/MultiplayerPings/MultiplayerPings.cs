@@ -236,6 +236,7 @@ internal static class MultiplayerPingService
 public sealed class MultiplayerPingMessage : INetMessage, IPacketSerializable
 {
     public bool ShouldBroadcast => true;
+    public bool ShouldBuffer => false;
     public NetTransferMode Mode => NetTransferMode.Reliable;
     public LogLevel LogLevel => LogLevel.VeryDebug;
 
