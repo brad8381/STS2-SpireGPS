@@ -39,7 +39,7 @@ internal static class PotionDiscardGuardPatch
             _armedPotion = potion;
             _armedUntil = now + (ulong)(Math.Max(0.5f, SpireGpsSettings.PotionGuardConfirmSeconds) * 1000f);
             SpireGpsToast.Show(
-                "Banter's Tweak's - Potion Guard: click Discard again to confirm.",
+                "Potion Guard: click Discard again to confirm.",
                 SpireGpsSettings.PotionGuardConfirmSeconds);
             return false;
         }
