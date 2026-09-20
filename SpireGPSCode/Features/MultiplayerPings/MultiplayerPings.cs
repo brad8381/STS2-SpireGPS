@@ -173,7 +173,14 @@ internal static class MultiplayerPingService
                     menu.QueueFree();
             }));
 
-        NGame.Instance.AddChild(menu);
+        var game = NGame.Instance;
+        if (game is null)
+        {
+            menu.QueueFree();
+            return;
+        }
+
+        game.AddChild(menu);
         menu.Position = new Vector2I((int)screenPosition.X, (int)screenPosition.Y);
         menu.Popup();
     }
