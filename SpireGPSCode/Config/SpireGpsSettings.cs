@@ -58,6 +58,18 @@ internal static class SpireGpsSettings
     internal static bool WishlistEnabled { get; set; } = true;
     internal static bool MultiplayerPingsEnabled { get; set; } = true;
 
+    internal static bool GhostTurnPlannerEnabled { get; set; } = true;
+    internal static bool DeckXRayEnabled { get; set; } = true;
+    internal static bool TriggerInspectorEnabled { get; set; } = true;
+    internal static bool TurnTimelineEnabled { get; set; } = true;
+    internal static bool ChoiceCompareEnabled { get; set; } = true;
+
+    // Trading changes gameplay rather than only presenting information, so it
+    // deliberately defaults off.
+    internal static bool TradingEnabled { get; set; } = false;
+    internal static bool TradingAllowCards { get; set; } = true;
+    internal static bool TradingAllowRelics { get; set; } = true;
+
     internal static void Apply(string key, object value)
     {
         switch (key)
@@ -114,6 +126,16 @@ internal static class SpireGpsSettings
             case "synergyHintsMax": SynergyHintsMax = Math.Clamp(Convert.ToInt32(value), 1, 6); break;
             case "wishlistEnabled": WishlistEnabled = Convert.ToBoolean(value); break;
             case "multiplayerPingsEnabled": MultiplayerPingsEnabled = Convert.ToBoolean(value); break;
+
+            case "ghostTurnPlannerEnabled": GhostTurnPlannerEnabled = Convert.ToBoolean(value); break;
+            case "deckXRayEnabled": DeckXRayEnabled = Convert.ToBoolean(value); break;
+            case "triggerInspectorEnabled": TriggerInspectorEnabled = Convert.ToBoolean(value); break;
+            case "turnTimelineEnabled": TurnTimelineEnabled = Convert.ToBoolean(value); break;
+            case "choiceCompareEnabled": ChoiceCompareEnabled = Convert.ToBoolean(value); break;
+
+            case "tradingEnabled": TradingEnabled = Convert.ToBoolean(value); break;
+            case "tradingAllowCards": TradingAllowCards = Convert.ToBoolean(value); break;
+            case "tradingAllowRelics": TradingAllowRelics = Convert.ToBoolean(value); break;
         }
     }
 }
