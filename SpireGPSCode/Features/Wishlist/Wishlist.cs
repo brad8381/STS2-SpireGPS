@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Relics;
+using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardLibrary;
 using MegaCrit.Sts2.Core.Nodes.Screens.RelicCollection;
 using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
@@ -20,6 +21,9 @@ internal static class WishlistService
     private const string CardSection = "wishlist_cards";
     private const string RelicSection = "wishlist_relics";
     private const string StarNodeName = "WishlistStar";
+    private const string LibraryFilterNodeName = "BantersWishlistOnly";
+
+    internal static bool CardLibraryWishlistOnly { get; private set; }
 
     private static readonly FieldInfo? CurrentPressedActionField =
         AccessTools.Field(typeof(NCardHolder), "_currentPressedAction");
@@ -29,6 +33,9 @@ internal static class WishlistService
 
     private static readonly FieldInfo? MerchantRelicNodeField =
         AccessTools.Field(typeof(NMerchantRelic), "_relicNode");
+
+    private static readonly MethodInfo? CardLibraryUpdateFilterMethod =
+        AccessTools.Method(typeof(NCardLibrary), "UpdateFilter");
 
     internal static bool IsCardWishlisted(CardModel? card)
         => card is not null &&
@@ -44,6 +51,7 @@ internal static class WishlistService
         LocalPreferences.Set(CardSection, card.Id.ToString(), next);
         SpireGpsToast.Show($"Wishlist: {(next ? "added" : "removed")} {card.Title}.");
         RefreshAllStars();
+        RefreshOpenCardLibraries();
     }
 
     internal static void ToggleRelic(RelicModel relic)
@@ -56,13 +64,15 @@ internal static class WishlistService
 
     internal static void RefreshCardHolder(NGridCardHolder holder)
     {
-        if (!SpireGpsSettings.WishlistEnabled)
-        {
-            SetStar(holder, false, new Vector2(252f, 4f), 34);
-            return;
-        }
+        var legacy = holder.GetNodeOrNull<Label>(StarNodeName);
+        Control owner = holder.CardNode ?? holder;
 
-        SetStar(holder, IsCardWishlisted(holder.CardModel), new Vector2(252f, 4f), 34);
+        if (!ReferenceEquals(owner, holder) && legacy is not null)
+            legacy.QueueFree();
+
+        SetCardStar(
+            owner,
+            SpireGpsSettings.WishlistEnabled && IsCardWishlisted(holder.CardModel));
     }
 
     internal static void RefreshRelicCollectionEntry(NRelicCollectionEntry entry)
@@ -118,16 +128,37 @@ internal static class WishlistService
     }
 
     internal static bool IsInsideCardLibrary(NGridCardHolder holder)
-    {
-        Node? parent = holder.GetParent();
-        while (parent is not null)
-        {
-            if (parent is NCardLibraryGrid)
-                return true;
-            parent = parent.GetParent();
-        }
+        => HasAncestor<NCardLibraryGrid>(holder);
 
-        return false;
+    internal static bool IsInsideDeckView(NGridCardHolder holder)
+        => HasAncestor<NDeckViewScreen>(holder);
+
+    internal static void AttachCardLibraryFilter(NCardLibrary library)
+    {
+        if (library.GetNodeOrNull<CheckBox>(LibraryFilterNodeName) is not null)
+            return;
+
+        var anchor = library.GetNodeOrNull<Control>("%MultiplayerCards");
+        var parent = anchor?.GetParent();
+        if (parent is null)
+            return;
+
+        var filter = new CheckBox
+        {
+            Name = LibraryFilterNodeName,
+            Text = "★ Wishlisted only",
+            ButtonPressed = CardLibraryWishlistOnly,
+            FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Show only cards on your Build Wishlist."
+        };
+
+        filter.Toggled += enabled =>
+        {
+            CardLibraryWishlistOnly = enabled;
+            RefreshCardLibrary(library);
+        };
+
+        parent.AddChild(filter);
     }
 
     internal static void ClearCardPressState(NCardHolder holder)
@@ -154,6 +185,40 @@ internal static class WishlistService
             RefreshMerchantRelic(merchant);
     }
 
+    private static void RefreshOpenCardLibraries()
+    {
+        if (Engine.GetMainLoop() is not SceneTree tree)
+            return;
+
+        foreach (var library in FindNodes<NCardLibrary>(tree.Root))
+            RefreshCardLibrary(library);
+    }
+
+    private static void RefreshCardLibrary(NCardLibrary library)
+    {
+        try
+        {
+            CardLibraryUpdateFilterMethod?.Invoke(library, new object[] { false });
+        }
+        catch (Exception ex)
+        {
+            MainFile.Logger.Warn($"Wishlist card-library refresh failed: {ex.Message}");
+        }
+    }
+
+    private static bool HasAncestor<T>(Node node) where T : Node
+    {
+        Node? parent = node.GetParent();
+        while (parent is not null)
+        {
+            if (parent is T)
+                return true;
+            parent = parent.GetParent();
+        }
+
+        return false;
+    }
+
     private static IEnumerable<T> FindNodes<T>(Node root) where T : Node
     {
         foreach (Node child in root.GetChildren())
@@ -164,6 +229,38 @@ internal static class WishlistService
             foreach (T nested in FindNodes<T>(child))
                 yield return nested;
         }
+    }
+
+    private static void SetCardStar(Control owner, bool visible)
+    {
+        var star = owner.GetNodeOrNull<Label>(StarNodeName);
+        if (star is null)
+        {
+            star = new Label
+            {
+                Name = StarNodeName,
+                Text = "★",
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                ZIndex = 100,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            star.AddThemeFontSizeOverride("font_size", 30);
+            star.AddThemeColorOverride("font_color", new Color("#F6C744"));
+            star.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.9f));
+            star.AddThemeConstantOverride("shadow_offset_x", 2);
+            star.AddThemeConstantOverride("shadow_offset_y", 2);
+            owner.AddChild(star);
+        }
+
+        star.AnchorLeft = 1f;
+        star.AnchorRight = 1f;
+        star.AnchorTop = 0f;
+        star.AnchorBottom = 0f;
+        star.OffsetLeft = -50f;
+        star.OffsetRight = -6f;
+        star.OffsetTop = 8f;
+        star.OffsetBottom = 48f;
+        star.Visible = visible;
     }
 
     private static void SetStar(Control owner, bool visible, Vector2 position, int fontSize)
@@ -209,7 +306,15 @@ internal static class WishlistCardRightClickPatch
         if (card is null || holder.CardNode?.Visibility != ModelVisibility.Visible)
             return true;
 
-        if (SpireGpsSettings.WishlistEnabled && WishlistService.IsInsideCardLibrary(holder))
+        bool directWishlistView =
+            WishlistService.IsInsideCardLibrary(holder) ||
+            WishlistService.IsInsideDeckView(holder);
+
+        bool wishlistGesture =
+            SpireGpsSettings.WishlistEnabled &&
+            (directWishlistView || Input.IsKeyPressed(Key.Shift));
+
+        if (wishlistGesture)
         {
             WishlistService.ToggleCard(card);
 
@@ -292,4 +397,32 @@ internal static class WishlistMerchantRelicPatch
 {
     private static void Postfix(NMerchantRelic __instance)
         => WishlistService.RefreshMerchantRelic(__instance);
+}
+
+
+[HarmonyPatch(typeof(NCardLibrary), nameof(NCardLibrary._Ready))]
+internal static class WishlistCardLibraryReadyPatch
+{
+    private static void Postfix(NCardLibrary __instance)
+        => WishlistService.AttachCardLibraryFilter(__instance);
+}
+
+[HarmonyPatch]
+internal static class WishlistCardLibraryFilterPatch
+{
+    private static MethodBase TargetMethod()
+        => typeof(NCardLibraryGrid)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .Single(method =>
+                method.Name == nameof(NCardLibraryGrid.FilterCards) &&
+                method.GetParameters().Length == 2);
+
+    private static void Prefix(ref Func<CardModel, bool> filter)
+    {
+        if (!SpireGpsSettings.WishlistEnabled || !WishlistService.CardLibraryWishlistOnly)
+            return;
+
+        var original = filter;
+        filter = card => original(card) && WishlistService.IsCardWishlisted(card);
+    }
 }
