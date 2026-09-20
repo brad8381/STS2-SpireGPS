@@ -298,11 +298,26 @@ internal static class DrawingPaletteService
         if (!IsActive || !IsValidIndex(message.PaletteIndex))
             return;
 
+        bool firstSeen = !Claims.ContainsKey(senderId);
+
         Claims[senderId] = message.PaletteIndex;
         RecolorModes[senderId] = message.RecolorExisting != 0;
 
         ResolveLocalConflict();
         ApplyPlayerVisualState(senderId);
+
+        // A newly joined player needs the claims that existed before they
+        // arrived. Every existing peer answers the first claim once, which
+        // gives the newcomer the complete palette state without a separate
+        // lobby protocol.
+        if (firstSeen && _netService is not null && senderId != _netService.NetId)
+        {
+            BroadcastLocalClaim();
+
+            if (IsLocalHost)
+                BroadcastHostPolicy();
+        }
+
         Changed?.Invoke();
     }
 
