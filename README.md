@@ -17,6 +17,12 @@ The idea is simple: surface useful information, prevent accidental inputs, and m
 - **Banter's Tweak's - Synergy Hints** - factual mechanical interaction hints between offered cards/relics and cards/relics already in your build.
 - **Banter's Tweak's - Build Wishlist** - right-click visible cards/relics in the compendium to wishlist them and show a star when they appear later.
 - **Banter's Tweak's - Multiplayer Pings** - right-click enemies, player creatures, or multiplayer player portraits for short synchronized tactical pings.
+- **Banter's Tweak's - Ghost Turn Planner** - non-destructively queue cards/targets, preview known energy/damage/block, and optionally share plans in co-op.
+- **Banter's Tweak's - Deck X-Ray** - deck statistics with clickable highlighting for types, costs, upgrades, keywords and utility categories.
+- **Banter's Tweak's - Trigger Inspector** - Ctrl-hover cards/relics to inspect factual mechanical relationships with your current build.
+- **Banter's Tweak's - Turn Timeline** - expandable deterministic preview of known end-turn effects, automatic damage, enemy intents and projected HP.
+- **Banter's Tweak's - Choice Compare** - pin up to three reward/shop choices and compare factual properties, upgrade deltas, wishlist state and interactions.
+- **Banter's Tweak's - Trading** - optional co-op Rest Site trading. OFF by default because it changes gameplay balance.
 
 All main modules default to enabled. The existing community **ModConfig** mod is recommended but is not a dependency. Without ModConfig, Banter's Tweak's uses built-in defaults.
 
@@ -86,16 +92,14 @@ Also implemented on the current development branch:
 - Synergy Hints for cards and relics
 - Multiplayer combat pings
 
-## Planned next modules
+## Newly implemented modules
 
-- **Ghost Turn Planner** - queue cards and targets as a non-destructive plan, preview deterministic energy/damage/block, and optionally share the plan with co-op teammates. Random outcomes remain unknown rather than being guessed.
-- **Deck X-Ray** - collapsible deck statistics with clickable categories for card type, cost, keywords, upgrades, draw, energy, AoE and other factual deck properties.
-- **Trigger Inspector** - inspect a card/relic/power to see which owned items currently trigger it, and inspect a card to see which owned effects react to it.
-- **Turn Timeline** - show the deterministic order of end-turn/start-turn effects, automatic damage, enemy actions and projected known HP/block changes before ending the turn.
-- **Choice Compare** - pin 2-3 offered cards/relics/potions and compare their factual properties, upgrade changes, owned copies, wishlist state and existing build interactions side-by-side.
-- **Trading** - optional gameplay-altering co-op module, OFF by default. Initial design is a Rest Site trade action with a real opportunity cost, 1-for-1 trading first, and host-configurable rules.
-
-These are intentionally separated from the existing modules until implemented so ModConfig never shows controls that do nothing.
+- **Ghost Turn Planner** - right-click hand cards while planning mode is active; targeted cards wait for a right-click target. The plan never plays cards or consumes RNG.
+- **Deck X-Ray** - clickable deck filters/highlights for card type, cost, upgrade state, keywords, Block, AoE, Draw and Energy sources.
+- **Trigger Inspector** - hold Ctrl while hovering supported cards/relics to inspect direct mechanical relationships.
+- **Turn Timeline** - deterministic-only end-turn preview; random/unknown results are not guessed.
+- **Choice Compare** - compare up to three cards/relics/potions without ranking them.
+- **Trading** - host-controlled, OFF by default. Choosing Trade at a Rest Site heals 15% Max HP instead of Resting/Smithing. Both players must choose Trade before exchanging. Supports cards (including removable Curses), safe relics and Gold. The host can optionally allow gifting.
 
 ## Compatibility
 
