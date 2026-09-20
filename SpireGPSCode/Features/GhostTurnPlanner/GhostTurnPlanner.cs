@@ -441,6 +441,7 @@ internal static class GhostTurnPlannerService
 public sealed class GhostPlanMessage : INetMessage, IPacketSerializable
 {
     public bool ShouldBroadcast => true;
+    public bool ShouldBuffer => false;
     public NetTransferMode Mode => NetTransferMode.Reliable;
     public LogLevel LogLevel => LogLevel.VeryDebug;
 
