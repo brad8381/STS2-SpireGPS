@@ -45,7 +45,6 @@ internal static class SpireGpsSettings
     internal static bool RelicTrackerShowProgressFraction { get; set; } = true;
 
     internal static bool DrawingPaletteEnabled { get; set; } = true;
-    internal static bool DrawingPaletteExclusiveMultiplayerColors { get; set; } = true;
     internal static bool DrawingPaletteRecolorExisting { get; set; } = false;
     internal static bool DrawingPaletteHostForceRecolor { get; set; } = false;
 
@@ -116,7 +115,6 @@ internal static class SpireGpsSettings
             case "relicTrackerShowProgressFraction": RelicTrackerShowProgressFraction = Convert.ToBoolean(value); break;
 
             case "drawingPaletteEnabled": DrawingPaletteEnabled = Convert.ToBoolean(value); break;
-            case "drawingPaletteExclusiveColors": DrawingPaletteExclusiveMultiplayerColors = Convert.ToBoolean(value); break;
             case "drawingPaletteRecolorExisting": DrawingPaletteRecolorExisting = Convert.ToBoolean(value); break;
             case "drawingPaletteHostForceRecolor": DrawingPaletteHostForceRecolor = Convert.ToBoolean(value); break;
 
