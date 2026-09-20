@@ -57,7 +57,9 @@ public partial class MainFile : Node
 
     internal static void RefreshRoutes()
     {
-        if (!SpireGpsSettings.RoutePlannerEnabled || RunState is null)
+        if (!SpireGpsSettings.RoutePlannerEnabled ||
+            CompatibilityManager.ShouldYieldRoutePlanner() ||
+            RunState is null)
         {
             RoutePlannerService.Clear();
             RoutePanelController.Refresh();
