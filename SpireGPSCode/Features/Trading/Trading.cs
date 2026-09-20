@@ -115,7 +115,7 @@ internal static class TradingService
             ZIndex = 120
         };
 
-        button.Pressed += () => TogglePanel(room);
+        button.Pressed += () => TogglePanel(_room);
         _room.AddChild(button);
     }
 
