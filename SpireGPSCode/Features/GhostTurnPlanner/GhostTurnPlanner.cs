@@ -48,9 +48,6 @@ internal static class GhostTurnPlannerService
 
     internal static void Attach(NCombatUi ui)
     {
-        if (!SpireGpsSettings.GhostTurnPlannerEnabled)
-            return;
-
         EnsureNetwork();
 
         if (ui.GetNodeOrNull<GhostTurnPlannerPanel>(PanelName) is not null)
