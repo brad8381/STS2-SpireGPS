@@ -7,6 +7,7 @@ using SpireGPS.Config;
 using SpireGPS.Features.DrawingPalette;
 using SpireGPS.Features.RoutePlanner;
 using SpireGPS.Features.TurnGuard;
+using SpireGPS.Features.Trading;
 using SpireGPS.UI;
 
 namespace SpireGPS;
@@ -47,6 +48,7 @@ public partial class MainFile : Node
     {
         RunState = runState;
         DrawingPaletteService.ResetForRun();
+        TradingService.InitializeForRun();
         RefreshRoutes();
     }
 
