@@ -140,7 +140,7 @@ internal static class DrawingPaletteService
 
     internal static void ApplySettingsChanged(string key)
     {
-        if (key is "drawingPaletteEnabled" or "drawingPaletteExclusiveColors")
+        if (key == "drawingPaletteEnabled")
         {
             ApplyAllVisualStates();
             Changed?.Invoke();
@@ -208,8 +208,11 @@ internal static class DrawingPaletteService
 
     internal static bool IsClaimedByOther(int index)
     {
-        if (!SpireGpsSettings.DrawingPaletteExclusiveMultiplayerColors || _netService is null)
+        if (_netService is null ||
+            _netService.Type is not (NetGameType.Host or NetGameType.Client))
+        {
             return false;
+        }
 
         ulong localId = _netService.NetId;
         return Claims.Any(kv => kv.Key != localId && kv.Value == index);
@@ -338,8 +341,11 @@ internal static class DrawingPaletteService
 
     private static void ResolveLocalConflict()
     {
-        if (!SpireGpsSettings.DrawingPaletteExclusiveMultiplayerColors || _netService is null)
+        if (_netService is null ||
+            _netService.Type is not (NetGameType.Host or NetGameType.Client))
+        {
             return;
+        }
 
         ulong localId = _netService.NetId;
         if (!Claims.TryGetValue(localId, out int localIndex))
