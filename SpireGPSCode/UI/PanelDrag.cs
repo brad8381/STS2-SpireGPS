@@ -9,7 +9,7 @@ internal static class PanelDrag
         bool dragging = false;
 
         handle.MouseFilter = Control.MouseFilterEnum.Stop;
-        handle.MouseDefaultCursorShape = Control.CursorShape.Move;
+        handle.MouseDefaultCursorShape = CursorShape.Move;
         if (string.IsNullOrWhiteSpace(handle.TooltipText))
             handle.TooltipText = "Drag to move this panel.";
 
