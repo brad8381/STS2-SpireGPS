@@ -144,10 +144,25 @@ internal static class TradingService
 
     internal static void InitializeForRun()
     {
+        ReadyPlayers.Clear();
+        CompletedPlayers.Clear();
+        _room = null;
+
         EnsureNetwork();
 
         if (_netService?.Type == NetGameType.Host)
+        {
             BroadcastPolicy();
+        }
+        else
+        {
+            _hostPolicyReceived = false;
+            _hostTradingEnabled = false;
+            _hostAllowCards = true;
+            _hostAllowRelics = true;
+            _hostAllowGold = true;
+            _hostAllowGifting = false;
+        }
     }
 
     internal static void BeginRestSite(NRestSiteRoom room)
