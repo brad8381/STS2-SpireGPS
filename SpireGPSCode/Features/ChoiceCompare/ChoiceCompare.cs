@@ -195,6 +195,13 @@ internal static class ChoiceCompareService
             $"Upgrade: {(card.IsUpgraded ? "Upgraded" : card.IsUpgradable ? "Available" : "None")}"
         };
 
+        if (!card.IsUpgraded && card.IsUpgradable)
+        {
+            string upgradeSummary = BuildUpgradeSummary(card);
+            if (!string.IsNullOrWhiteSpace(upgradeSummary))
+                lines.Add("Upgrade changes: " + upgradeSummary);
+        }
+
         if (card.Keywords.Count > 0)
             lines.Add("Keywords: " + string.Join(", ", card.Keywords));
 
@@ -216,6 +223,51 @@ internal static class ChoiceCompareService
         }
 
         return string.Join("\n", lines);
+    }
+
+    private static string BuildUpgradeSummary(CardModel card)
+    {
+        try
+        {
+            var upgraded = (CardModel)card.MutableClone();
+            upgraded.UpgradeInternal();
+
+            var changes = new List<string>();
+
+            if (!card.EnergyCost.CostsX &&
+                !upgraded.EnergyCost.CostsX &&
+                card.EnergyCost.Canonical != upgraded.EnergyCost.Canonical)
+            {
+                changes.Add($"Cost {card.EnergyCost.Canonical}->{upgraded.EnergyCost.Canonical}");
+            }
+
+            foreach (var pair in card.DynamicVars)
+            {
+                if (!upgraded.DynamicVars.TryGetValue(pair.Key, out var upgradedVar))
+                    continue;
+
+                int before = pair.Value.IntValue;
+                int after = upgradedVar.IntValue;
+                if (before != after)
+                    changes.Add($"{pair.Key} {before}->{after}");
+            }
+
+            var gained = upgraded.Keywords.Except(card.Keywords).ToArray();
+            var lost = card.Keywords.Except(upgraded.Keywords).ToArray();
+
+            if (gained.Length > 0)
+                changes.Add("+ " + string.Join(", ", gained));
+            if (lost.Length > 0)
+                changes.Add("- " + string.Join(", ", lost));
+
+            return changes.Count > 0
+                ? string.Join("; ", changes.Take(6))
+                : "text/mechanics change";
+        }
+        catch
+        {
+            return "available";
+        }
     }
 
     private static string BuildRelicBody(RelicModel relic)
