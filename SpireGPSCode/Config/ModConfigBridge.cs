@@ -110,7 +110,7 @@ internal static class ModConfigBridge
             Toggle("preferredRouteEnabled", "Show Suggested Route", true),
             Toggle("autoHighlightPreferredRoute", "Auto-highlight Suggested Route", true),
             Toggle("routeAutoSelectNextNode", "Auto-select Next Suggested Node", false),
-            Toggle("routeConfirmAutoTravel", "Confirm Before Auto-travel", true),
+            Toggle("routeRushAutoTravel", "Rush Mode - Skip Auto-travel Confirmation", false),
             Toggle("routePrioritiesEnabled", "Use Priority Sorting", true),
             Dropdown("routePriority1", "Priority 1", "Elites ↑", priorityOptions),
             Dropdown("routePriority2", "Priority 2", "Treasure ↑", priorityOptions),
