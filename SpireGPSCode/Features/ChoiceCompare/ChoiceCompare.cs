@@ -7,6 +7,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using MegaCrit.Sts2.Core.Nodes.Rewards;
+using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
 using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
 using MegaCrit.Sts2.Core.Nodes.Screens.TreasureRoomRelic;
@@ -560,4 +561,17 @@ internal static class ChoiceCompareTreasureRelicPatch
                 __instance.AcceptEvent();
             }));
     }
+}
+
+
+[HarmonyPatch(typeof(NCardRewardSelectionScreen), nameof(NCardRewardSelectionScreen._ExitTree))]
+internal static class ChoiceCompareCardRewardClosePatch
+{
+    private static void Postfix() => ChoiceCompareService.Clear();
+}
+
+[HarmonyPatch(typeof(NRewardsScreen), nameof(NRewardsScreen._ExitTree))]
+internal static class ChoiceCompareRewardsClosePatch
+{
+    private static void Postfix() => ChoiceCompareService.Clear();
 }
