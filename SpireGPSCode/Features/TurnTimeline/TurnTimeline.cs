@@ -76,7 +76,7 @@ internal static class TurnTimelineService
                 int attackDamage = 0;
                 var nonAttack = new List<string>();
 
-                foreach (var intent in enemy.Monster?.NextMove.Intents ?? Array.Empty<MegaCrit.Sts2.Core.MonsterMoves.Intents.Intent>())
+                foreach (var intent in enemy.Monster?.NextMove.Intents ?? Array.Empty<AbstractIntent>())
                 {
                     if (intent is AttackIntent attack)
                     {
