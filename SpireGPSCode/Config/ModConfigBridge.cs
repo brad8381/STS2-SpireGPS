@@ -2,6 +2,7 @@ using System.Reflection;
 using Godot;
 using SpireGPS.Features.DrawingPalette;
 using SpireGPS.Features.MapLegend;
+using SpireGPS.Features.RelicProgress;
 using SpireGPS.Features.SynergyHints;
 using SpireGPS.Features.Trading;
 using SpireGPS.Features.Wishlist;
@@ -266,6 +267,8 @@ internal static class ModConfigBridge
             WishlistService.RefreshAllStars();
         if (key.StartsWith("synergyHints", StringComparison.OrdinalIgnoreCase))
             SynergyHintService.RefreshAll();
+        if (key.StartsWith("relicTracker", StringComparison.OrdinalIgnoreCase))
+            RelicProgressService.RefreshAll();
         if (key.StartsWith("trading", StringComparison.OrdinalIgnoreCase))
             TradingService.ApplySettingsChanged();
     }
