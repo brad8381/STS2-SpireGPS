@@ -9,6 +9,7 @@ using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using SpireGPS.Config;
+using SpireGPS.Features.GhostTurnPlanner;
 
 namespace SpireGPS.Features.MultiplayerPings;
 
@@ -77,6 +78,7 @@ internal static class MultiplayerPingService
     {
         if (!SpireGpsSettings.MultiplayerPingsEnabled ||
             !IsMultiplayer() ||
+            GhostTurnPlannerService.IsAwaitingTarget ||
             evt is not InputEventMouseButton mouse ||
             mouse.Pressed ||
             mouse.ButtonIndex != MouseButton.Right)
