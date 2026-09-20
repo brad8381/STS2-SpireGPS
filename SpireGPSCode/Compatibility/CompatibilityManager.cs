@@ -21,6 +21,32 @@ internal static class CompatibilityManager
         return target is not null && HasForeignInputPatch(target, "Turn Guard");
     }
 
+    internal static bool ShouldYieldPotionGuard()
+    {
+        if (!SpireGpsSettings.YieldToOverlappingMods)
+            return false;
+
+        var target = AccessTools.Method(
+            typeof(MegaCrit.Sts2.Core.Nodes.Potions.NPotionPopup),
+            "OnDiscardButtonPressed");
+
+        return target is not null && HasForeignInputPatch(target, "Potion Guard");
+    }
+
+    internal static bool ShouldYieldRoutePlanner()
+    {
+        if (!SpireGpsSettings.YieldToOverlappingMods)
+            return false;
+
+        if (!IsAssemblyLoaded("RouteSuggest", "STS2RouteSuggest"))
+            return false;
+
+        LogOnce(
+            "RoutePlanner-RouteSuggest",
+            "Compatibility: RouteSuggest detected. Route Planner will yield to it.");
+        return true;
+    }
+
     internal static bool ShouldYieldDrawingPalette()
     {
         if (!SpireGpsSettings.YieldToOverlappingMods)
