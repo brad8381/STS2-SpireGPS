@@ -7,6 +7,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using MegaCrit.Sts2.Core.Nodes.Rewards;
+using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
 using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
@@ -581,8 +582,14 @@ internal static class ChoiceCompareCardRewardClosePatch
     private static void Postfix() => ChoiceCompareService.Clear();
 }
 
-[HarmonyPatch(typeof(NRewardsScreen), nameof(NRewardsScreen._ExitTree))]
+[HarmonyPatch(typeof(NRewardsScreen), nameof(NRewardsScreen.AfterOverlayClosed))]
 internal static class ChoiceCompareRewardsClosePatch
+{
+    private static void Postfix() => ChoiceCompareService.Clear();
+}
+
+[HarmonyPatch(typeof(NMerchantRoom), nameof(NMerchantRoom._ExitTree))]
+internal static class ChoiceCompareMerchantClosePatch
 {
     private static void Postfix() => ChoiceCompareService.Clear();
 }
