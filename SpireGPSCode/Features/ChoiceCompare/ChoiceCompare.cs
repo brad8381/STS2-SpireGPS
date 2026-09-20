@@ -593,3 +593,10 @@ internal static class ChoiceCompareMerchantClosePatch
 {
     private static void Postfix() => ChoiceCompareService.Clear();
 }
+
+
+[HarmonyPatch(typeof(NTreasureRoomRelicCollection), nameof(NTreasureRoomRelicCollection._ExitTree))]
+internal static class ChoiceCompareTreasureClosePatch
+{
+    private static void Postfix() => ChoiceCompareService.Clear();
+}
