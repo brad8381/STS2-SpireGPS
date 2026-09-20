@@ -24,11 +24,15 @@ internal static class DrawingPaletteService
         new("Red", new Color("#FF4B4B")),
         new("Orange", new Color("#FF9F43")),
         new("Yellow", new Color("#FFE66D")),
+        new("Lime", new Color("#A8E95A")),
         new("Green", new Color("#4CD964")),
         new("Cyan", new Color("#35D7E8")),
-        new("Blue", new Color("#4DA3FF")),
+        new("Sky", new Color("#72C7FF")),
+        new("Blue", new Color("#4D7CFF")),
         new("Purple", new Color("#9B6DFF")),
-        new("Pink", new Color("#FF66C4"))
+        new("Magenta", new Color("#D95CFF")),
+        new("Pink", new Color("#FF66C4")),
+        new("White", new Color("#F2F2F2"))
     };
 
     private static readonly Dictionary<ulong, int> Claims = new();
@@ -468,7 +472,7 @@ internal static class DrawingPaletteService
             return;
 
         row.AddChild(new DrawingPaletteControl { Name = "BanterDrawingPalette" });
-        tools.Size += new Vector2(IsLocalHost ? 470f : 390f, 0f);
+        tools.Size += new Vector2(IsLocalHost ? 590f : 510f, 0f);
     }
 }
 
@@ -526,7 +530,7 @@ internal partial class DrawingPaletteControl : HBoxContainer
 
     public DrawingPaletteControl()
     {
-        CustomMinimumSize = new Vector2(360f, 46f);
+        CustomMinimumSize = new Vector2(480f, 46f);
         AddThemeConstantOverride("separation", 4);
     }
 
