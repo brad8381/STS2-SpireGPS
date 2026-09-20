@@ -486,6 +486,13 @@ internal partial class GhostTurnPlannerPanel : PanelContainer
         GhostTurnPlannerService.Changed -= Refresh;
     }
 
+    public override void _Process(double delta)
+    {
+        Visible = SpireGpsSettings.GhostTurnPlannerEnabled;
+        if (!Visible && GhostTurnPlannerService.IsActive)
+            GhostTurnPlannerService.SetActive(false);
+    }
+
     private void Refresh()
     {
         _toggle.SetPressedNoSignal(GhostTurnPlannerService.IsActive);
