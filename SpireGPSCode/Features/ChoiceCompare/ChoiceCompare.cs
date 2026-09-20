@@ -415,6 +415,17 @@ internal partial class ChoiceCompareLayer : CanvasLayer
         ChoiceCompareService.Changed -= Refresh;
     }
 
+    public override void _Process(double delta)
+    {
+        if (!SpireGpsSettings.ChoiceCompareEnabled)
+        {
+            _panel.Visible = false;
+            return;
+        }
+
+        _panel.Visible = ChoiceCompareService.Current.Count > 0;
+    }
+
     private void Refresh()
     {
         foreach (Node child in _columns.GetChildren())
