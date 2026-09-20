@@ -321,12 +321,12 @@ internal static class TriggerInspectorBasicRelicPatch
     {
         __instance.Connect(
             NClickableControl.SignalName.Focused,
-            Callable.From<NButton>(_ =>
+            Callable.From<NClickableControl>(_ =>
                 TriggerInspectorService.FocusRelic(__instance.Relic?.Model, __instance)));
 
         __instance.Connect(
             NClickableControl.SignalName.Unfocused,
-            Callable.From<NButton>(_ =>
+            Callable.From<NClickableControl>(_ =>
                 TriggerInspectorService.Unfocus(__instance)));
     }
 }
@@ -341,12 +341,12 @@ internal static class TriggerInspectorCollectionRelicPatch
 
         __instance.Connect(
             NClickableControl.SignalName.Focused,
-            Callable.From<NButton>(_ =>
+            Callable.From<NClickableControl>(_ =>
                 TriggerInspectorService.FocusRelic(__instance.relic, __instance)));
 
         __instance.Connect(
             NClickableControl.SignalName.Unfocused,
-            Callable.From<NButton>(_ =>
+            Callable.From<NClickableControl>(_ =>
                 TriggerInspectorService.Unfocus(__instance)));
     }
 }
