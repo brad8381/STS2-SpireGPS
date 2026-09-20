@@ -211,7 +211,7 @@ internal static class ModConfigBridge
         Set(e, "Min", -10f);
         Set(e, "Max", 10f);
         Set(e, "Step", 1f);
-        Set(e, "Format", "F0");
+        Set(e, "Format", step < 1f ? "F1" : "F0");
         Set(e, "Description", "Positive = prefer this room type. Negative = avoid it.");
         Set(e, "OnChanged", new Action<object>(v => ApplyAndRefresh(key, v)));
     });
@@ -313,8 +313,6 @@ internal static class ModConfigBridge
         Load("shopWeight", 1f);
         Load("restWeight", 2f);
         Load("treasureWeight", 1f);
-        Load("turnGuardEnabled", true);
-        Load("potionGuardEnabled", true);
         Load("turnGuardEnabled", true);
         Load("turnGuardWarnPlayableCards", true);
         Load("turnGuardWarnEnergy", true);
