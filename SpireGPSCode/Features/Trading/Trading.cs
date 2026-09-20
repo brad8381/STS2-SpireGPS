@@ -31,21 +31,71 @@ internal static class TradingService
 
     private static INetGameService? _netService;
     private static bool _handlersRegistered;
+    private static NRestSiteRoom? _room;
+
+    private static bool _hostPolicyReceived;
+    private static bool _hostTradingEnabled;
+    private static bool _hostAllowCards = true;
+    private static bool _hostAllowRelics = true;
 
     internal static event Action? Changed;
 
     internal static bool IsAvailable =>
-        SpireGpsSettings.TradingEnabled &&
-        MainFile.RunState is { Players.Count: > 1 };
+        MainFile.RunState is { Players.Count: > 1 } &&
+        EffectiveEnabled;
+
+    private static bool EffectiveEnabled =>
+        _netService?.Type == NetGameType.Host
+            ? SpireGpsSettings.TradingEnabled
+            : _hostPolicyReceived && _hostTradingEnabled;
+
+    private static bool EffectiveAllowCards =>
+        _netService?.Type == NetGameType.Host
+            ? SpireGpsSettings.TradingAllowCards
+            : _hostPolicyReceived && _hostAllowCards;
+
+    private static bool EffectiveAllowRelics =>
+        _netService?.Type == NetGameType.Host
+            ? SpireGpsSettings.TradingAllowRelics
+            : _hostPolicyReceived && _hostAllowRelics;
 
     internal static void Attach(NRestSiteRoom room)
     {
+        _room = room;
         EnsureNetwork();
 
-        if (!IsAvailable)
+        if (_netService?.Type == NetGameType.Host)
+            BroadcastPolicy();
+
+        RefreshRestSiteButton();
+    }
+
+    internal static void ApplySettingsChanged()
+    {
+        EnsureNetwork();
+
+        if (_netService?.Type == NetGameType.Host)
+        {
+            BroadcastPolicy();
+            RefreshRestSiteButton();
+        }
+    }
+
+    private static void RefreshRestSiteButton()
+    {
+        if (_room is null || !GodotObject.IsInstanceValid(_room))
             return;
 
-        if (room.GetNodeOrNull<Button>(TradeButtonName) is not null)
+        var existing = _room.GetNodeOrNull<Button>(TradeButtonName);
+
+        if (!IsAvailable)
+        {
+            existing?.QueueFree();
+            _room.GetNodeOrNull<TradingPanel>(TradePanelName)?.QueueFree();
+            return;
+        }
+
+        if (existing is not null)
             return;
 
         var button = new Button
@@ -66,7 +116,7 @@ internal static class TradingService
         };
 
         button.Pressed += () => TogglePanel(room);
-        room.AddChild(button);
+        _room.AddChild(button);
     }
 
     internal static IReadOnlyList<Player> GetTradeTargets()
@@ -92,7 +142,7 @@ internal static class TradingService
     {
         if (kind == TradeItemKind.Card)
         {
-            if (!SpireGpsSettings.TradingAllowCards)
+            if (!EffectiveAllowCards)
                 return Array.Empty<TradeItemChoice>();
 
             return player.Deck.Cards
@@ -105,7 +155,7 @@ internal static class TradingService
                 .ToArray();
         }
 
-        if (!SpireGpsSettings.TradingAllowRelics)
+        if (!EffectiveAllowRelics)
             return Array.Empty<TradeItemChoice>();
 
         return player.Relics
@@ -185,6 +235,7 @@ internal static class TradingService
             {
                 _netService.UnregisterMessageHandler<TradeProposalMessage>(HandleProposal);
                 _netService.UnregisterMessageHandler<TradeExecuteMessage>(HandleExecute);
+                _netService.UnregisterMessageHandler<TradePolicyMessage>(HandlePolicy);
             }
             catch { }
         }
@@ -192,7 +243,51 @@ internal static class TradingService
         _netService = service;
         _netService.RegisterMessageHandler<TradeProposalMessage>(HandleProposal);
         _netService.RegisterMessageHandler<TradeExecuteMessage>(HandleExecute);
+        _netService.RegisterMessageHandler<TradePolicyMessage>(HandlePolicy);
         _handlersRegistered = true;
+
+        if (_netService.Type == NetGameType.Host)
+        {
+            _hostPolicyReceived = true;
+            _hostTradingEnabled = SpireGpsSettings.TradingEnabled;
+            _hostAllowCards = SpireGpsSettings.TradingAllowCards;
+            _hostAllowRelics = SpireGpsSettings.TradingAllowRelics;
+        }
+    }
+
+    private static void BroadcastPolicy()
+    {
+        if (_netService?.Type != NetGameType.Host)
+            return;
+
+        _hostPolicyReceived = true;
+        _hostTradingEnabled = SpireGpsSettings.TradingEnabled;
+        _hostAllowCards = SpireGpsSettings.TradingAllowCards;
+        _hostAllowRelics = SpireGpsSettings.TradingAllowRelics;
+
+        _netService.SendMessage(new TradePolicyMessage
+        {
+            Enabled = _hostTradingEnabled,
+            AllowCards = _hostAllowCards,
+            AllowRelics = _hostAllowRelics
+        });
+    }
+
+    private static void HandlePolicy(TradePolicyMessage message, ulong senderId)
+    {
+        if (_netService is null || _netService.Type != NetGameType.Client)
+            return;
+
+        if (_netService is not NetClientGameService client || senderId != client.HostNetId)
+            return;
+
+        _hostPolicyReceived = true;
+        _hostTradingEnabled = message.Enabled;
+        _hostAllowCards = message.AllowCards;
+        _hostAllowRelics = message.AllowRelics;
+
+        RefreshRestSiteButton();
+        Changed?.Invoke();
     }
 
     private static void HandleProposal(TradeProposalMessage message, ulong senderId)
@@ -326,8 +421,7 @@ internal static class TradingService
         string aExpected,
         string bExpected)
     {
-        if (!SpireGpsSettings.TradingAllowCards ||
-            aIndex < 0 || aIndex >= a.Deck.Cards.Count ||
+        if (aIndex < 0 || aIndex >= a.Deck.Cards.Count ||
             bIndex < 0 || bIndex >= b.Deck.Cards.Count)
         {
             return false;
@@ -369,8 +463,7 @@ internal static class TradingService
         string aExpected,
         string bExpected)
     {
-        if (!SpireGpsSettings.TradingAllowRelics ||
-            aIndex < 0 || aIndex >= a.Relics.Count ||
+        if (aIndex < 0 || aIndex >= a.Relics.Count ||
             bIndex < 0 || bIndex >= b.Relics.Count)
         {
             return false;
@@ -460,6 +553,33 @@ internal static class TradingService
 
         label = relic.Title.GetFormattedText();
         return true;
+    }
+}
+
+
+public sealed class TradePolicyMessage : INetMessage, IPacketSerializable
+{
+    public bool ShouldBroadcast => true;
+    public bool ShouldBuffer => true;
+    public NetTransferMode Mode => NetTransferMode.Reliable;
+    public LogLevel LogLevel => LogLevel.VeryDebug;
+
+    public bool Enabled;
+    public bool AllowCards;
+    public bool AllowRelics;
+
+    public void Serialize(PacketWriter writer)
+    {
+        writer.WriteBool(Enabled);
+        writer.WriteBool(AllowCards);
+        writer.WriteBool(AllowRelics);
+    }
+
+    public void Deserialize(PacketReader reader)
+    {
+        Enabled = reader.ReadBool();
+        AllowCards = reader.ReadBool();
+        AllowRelics = reader.ReadBool();
     }
 }
 
@@ -622,10 +742,13 @@ internal partial class TradingPanel : PanelContainer
 
         outer.AddChild(new Label { Text = "Item type" });
         _kind = new OptionButton();
-        if (SpireGpsSettings.TradingAllowCards)
-            _kind.AddItem("Cards", (int)TradeItemKind.Card);
-        if (SpireGpsSettings.TradingAllowRelics)
-            _kind.AddItem("Relics", (int)TradeItemKind.Relic);
+        if (TradingService.GetLocalPlayer() is { } localForKinds)
+        {
+            if (TradingService.GetChoices(localForKinds, TradeItemKind.Card).Count > 0)
+                _kind.AddItem("Cards", (int)TradeItemKind.Card);
+            if (TradingService.GetChoices(localForKinds, TradeItemKind.Relic).Count > 0)
+                _kind.AddItem("Relics", (int)TradeItemKind.Relic);
+        }
         _kind.ItemSelected += _ => RefreshItems();
         outer.AddChild(_kind);
 
