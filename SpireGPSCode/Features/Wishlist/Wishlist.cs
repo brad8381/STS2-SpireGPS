@@ -127,6 +127,39 @@ internal static class WishlistService
             30);
     }
 
+    internal static bool TryToggleMerchantSlot(NMerchantSlot slot)
+    {
+        switch (slot)
+        {
+            case NMerchantCard cardSlot:
+            {
+                var node = MerchantCardNodeField?.GetValue(cardSlot) as MegaCrit.Sts2.Core.Nodes.Cards.NCard;
+                if (node?.Model is null)
+                    return false;
+
+                ToggleCard(node.Model);
+                return true;
+            }
+
+            case NMerchantRelic relicSlot:
+            {
+                var node = MerchantRelicNodeField?.GetValue(relicSlot) as NRelic;
+                RelicModel? relic = null;
+                try { relic = node?.Model; }
+                catch { }
+
+                if (relic is null)
+                    return false;
+
+                ToggleRelic(relic);
+                return true;
+            }
+
+            default:
+                return false;
+        }
+    }
+
     internal static bool IsInsideCardLibrary(NGridCardHolder holder)
         => HasAncestor<NCardLibraryGrid>(holder);
 
@@ -135,12 +168,9 @@ internal static class WishlistService
 
     internal static void AttachCardLibraryFilter(NCardLibrary library)
     {
-        if (library.GetNodeOrNull<CheckBox>(LibraryFilterNodeName) is not null)
-            return;
-
         var anchor = library.GetNodeOrNull<Control>("%MultiplayerCards");
         var parent = anchor?.GetParent();
-        if (parent is null)
+        if (parent is null || parent.GetNodeOrNull<CheckBox>(LibraryFilterNodeName) is not null)
             return;
 
         var filter = new CheckBox
