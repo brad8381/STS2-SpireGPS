@@ -3,6 +3,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Potions;
+using SpireGPS.Compatibility;
 using SpireGPS.Config;
 using SpireGPS.UI;
 
@@ -19,8 +20,11 @@ internal static class PotionDiscardGuardPatch
 
     private static bool Prefix(NPotionPopup __instance)
     {
-        if (!SpireGpsSettings.PotionGuardEnabled)
+        if (!SpireGpsSettings.PotionGuardEnabled ||
+            CompatibilityManager.ShouldYieldPotionGuard())
+        {
             return true;
+        }
 
         try
         {
