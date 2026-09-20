@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.MonsterMoves.Intents;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using SpireGPS.Config;
+using SpireGPS.UI;
 
 namespace SpireGPS.Features.TurnTimeline;
 
@@ -196,6 +197,15 @@ internal partial class TurnTimelinePanel : PanelContainer
         var box = new VBoxContainer();
         box.AddThemeConstantOverride("separation", 5);
         AddChild(box);
+
+        var title = new Label
+        {
+            Text = "Turn Timeline",
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        title.AddThemeFontSizeOverride("font_size", 14);
+        box.AddChild(title);
+        PanelDrag.Attach(title, this);
 
         _toggle = new Button
         {
