@@ -3,6 +3,7 @@ using Godot;
 using SpireGPS.Features.DrawingPalette;
 using SpireGPS.Features.MapLegend;
 using SpireGPS.Features.SynergyHints;
+using SpireGPS.Features.Trading;
 using SpireGPS.Features.Wishlist;
 
 namespace SpireGPS.Config;
@@ -258,6 +259,8 @@ internal static class ModConfigBridge
             WishlistService.RefreshAllStars();
         if (key.StartsWith("synergyHints", StringComparison.OrdinalIgnoreCase))
             SynergyHintService.RefreshAll();
+        if (key.StartsWith("trading", StringComparison.OrdinalIgnoreCase))
+            TradingService.ApplySettingsChanged();
     }
 
     private static bool IsRouteSetting(string key)
