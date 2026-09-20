@@ -1,6 +1,6 @@
-# Banter's Tweak's - Roadmap
+# Banter's Tweak's - Module Design
 
-This file captures approved module designs before implementation. Planned modules should not appear in ModConfig until they actually have working code.
+This file records the intended behaviour of the larger modules. Ghost Turn Planner, Deck X-Ray, Trigger Inspector, Turn Timeline, Choice Compare and Trading now have initial implementations on the development branch.
 
 ## 1. Ghost Turn Planner
 
@@ -146,7 +146,7 @@ Initial co-op concept:
 
 - add a Trade interaction at Rest Sites
 - trading must have a meaningful opportunity cost
-- candidate default: Trade gives only 15% max-HP healing instead of the normal full Rest heal, then opens the trade screen
+- Trade gives 15% max-HP healing instead of the normal full Rest heal, then opens the trade screen
 - host can configure/disable the module
 
 Initial trade rules:
@@ -154,12 +154,13 @@ Initial trade rules:
 - Cards: allowed
 - Relics: allowed with safety restrictions
 - Potions: candidate
-- Gold: not initially
+- Gold: allowed, host-configurable
+- Curses: allowed when the card is removable
 - Starting/bound/character-critical relics: blocked
-- 1-for-1 exchanges first
-- gifting can be a later host option
+- Default exchange: both sides provide something
+- Gifting: optional host setting, OFF by default
 
-The exact balance cost should remain configurable while testing.
+Current test balance: 15% Max HP healing. Trading remains OFF by default because it changes game balance.
 
 ## Deferred ideas
 
