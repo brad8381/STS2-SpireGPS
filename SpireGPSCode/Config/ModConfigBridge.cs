@@ -169,9 +169,9 @@ internal static class ModConfigBridge
             Toggle("choiceCompareEnabled", "Enable Choice Compare", true),
 
             Header("Trading"),
-            Toggle("tradingEnabled", "Enable Trading", false),
-            Toggle("tradingAllowCards", "Allow Card Trades", true),
-            Toggle("tradingAllowRelics", "Allow Safe Relic Trades", true)
+            Toggle("tradingEnabled", "Enable Trading (Host)", false),
+            Toggle("tradingAllowCards", "Allow Card Trades (Host)", true),
+            Toggle("tradingAllowRelics", "Allow Safe Relic Trades (Host)", true)
         };
 
         var result = Array.CreateInstance(_entryType!, entries.Count);
