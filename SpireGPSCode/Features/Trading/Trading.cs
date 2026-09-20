@@ -125,6 +125,8 @@ internal static class TradingService
             ? SpireGpsSettings.TradingAllowGold
             : _hostPolicyReceived && _hostAllowGold;
 
+    internal static bool CardTradingEnabled => EffectiveAllowCards;
+    internal static bool RelicTradingEnabled => EffectiveAllowRelics;
     internal static bool GoldTradingEnabled => EffectiveAllowGold;
 
     internal static bool AllowGifting =>
@@ -1171,8 +1173,13 @@ internal partial class TradingPanel : PanelContainer
             : (int)TradeLegKind.Card;
 
         button.Clear();
-        button.AddItem("Card", (int)TradeLegKind.Card);
-        button.AddItem("Relic", (int)TradeLegKind.Relic);
+
+        if (TradingService.CardTradingEnabled)
+            button.AddItem("Card", (int)TradeLegKind.Card);
+
+        if (TradingService.RelicTradingEnabled)
+            button.AddItem("Relic", (int)TradeLegKind.Relic);
+
         if (TradingService.GoldTradingEnabled)
             button.AddItem("Gold", (int)TradeLegKind.Gold);
 
@@ -1188,7 +1195,8 @@ internal partial class TradingPanel : PanelContainer
             }
         }
 
-        button.Select(0);
+        if (button.ItemCount > 0)
+            button.Select(0);
     }
 
     private void RefreshLegs()
