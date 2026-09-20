@@ -417,12 +417,12 @@ internal static class WishlistCardLibraryFilterPatch
                 method.Name == nameof(NCardLibraryGrid.FilterCards) &&
                 method.GetParameters().Length == 2);
 
-    private static void Prefix(ref Func<CardModel, bool> filter)
+    private static void Prefix(ref Func<CardModel, bool> __0)
     {
         if (!SpireGpsSettings.WishlistEnabled || !WishlistService.CardLibraryWishlistOnly)
             return;
 
-        var original = filter;
-        filter = card => original(card) && WishlistService.IsCardWishlisted(card);
+        var original = __0;
+        __0 = card => original(card) && WishlistService.IsCardWishlisted(card);
     }
 }
