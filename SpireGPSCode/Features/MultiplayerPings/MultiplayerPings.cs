@@ -33,9 +33,8 @@ internal static class MultiplayerPingService
 
     internal static void AttachToCreature(NCreature creature)
     {
-        if (!SpireGpsSettings.MultiplayerPingsEnabled)
-            return;
-
+        // Always attach the lightweight input hook so ModConfig can enable or
+        // disable pings live during an existing combat.
         EnsureNetwork();
 
         if (!IsMultiplayer() || creature.Entity.CombatId is null)
@@ -96,9 +95,8 @@ internal static class MultiplayerPingService
 
     internal static void AttachToPlayerState(NMultiplayerPlayerState playerState)
     {
-        if (!SpireGpsSettings.MultiplayerPingsEnabled)
-            return;
-
+        // As with creature hitboxes, keep the hook installed and gate the
+        // actual behavior in the input handler.
         EnsureNetwork();
 
         if (!IsMultiplayer() || playerState.Hitbox.HasMeta("banter_ping_hook"))
