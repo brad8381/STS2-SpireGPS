@@ -112,8 +112,7 @@ internal static class MultiplayerPingService
 
     private static void OnPlayerStateInput(NMultiplayerPlayerState playerState, InputEvent evt)
     {
-        if (!SpireGpsSettings.MultiplayerPingsEnabled ||
-            !IsMultiplayer() ||
+        if (!IsMultiplayer() ||
             evt is not InputEventMouseButton mouse ||
             mouse.Pressed ||
             mouse.ButtonIndex != MouseButton.Right)
@@ -121,8 +120,18 @@ internal static class MultiplayerPingService
             return;
         }
 
-        if (playerState.Player.Creature.CombatId is not uint combatId)
+        if (GhostTurnPlannerService.IsAwaitingTarget)
+        {
+            if (GhostTurnPlannerService.TryAssignTarget(playerState.Player.Creature))
+                playerState.Hitbox.AcceptEvent();
             return;
+        }
+
+        if (!SpireGpsSettings.MultiplayerPingsEnabled ||
+            playerState.Player.Creature.CombatId is not uint combatId)
+        {
+            return;
+        }
 
         ShowMenu(false, combatId, mouse.GlobalPosition);
         playerState.Hitbox.AcceptEvent();
