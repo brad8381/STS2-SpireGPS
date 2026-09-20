@@ -4,6 +4,8 @@ Use this after a clean build. Test one module at a time so a failure can be isol
 
 ## 0. Startup / configuration
 
+- Build/install and confirm the game Mods folder contains BantersTweaks/BantersTweaks.dll and BantersTweaks.json.
+- Confirm the legacy SpireGPS mod folder is removed.
 - Launch with Banter's Tweak's enabled.
 - Confirm no startup exception.
 - If ModConfig is installed, open Settings -> Mods -> Banter's Tweak's.
@@ -38,8 +40,9 @@ Use this after a clean build. Test one module at a time so a failure can be isol
 - Select a route and confirm only that route is highlighted.
 - Auto-highlight suggested route should update after route changes.
 - Auto-select next node:
-  - with confirmation ON: confirmation appears before travel
-  - with confirmation OFF: next highlighted node is selected directly
+  - Rush mode OFF: confirmation appears before travel
+  - Rush mode ON: next highlighted node is selected directly with no confirmation
+- Drag the Route Planner by its title and confirm it stays where moved while the map remains open
 
 ## 4. Drawing Palette
 
@@ -70,8 +73,9 @@ Use this after a clean build. Test one module at a time so a failure can be isol
 
 ## 6. Relic Progress
 
-Test several supported counter relics.
+Test several supported counter relics, including Brilliant Scarf.
 
+- Brilliant Scarf shows card progress as 0/5, 1/5, etc. while active in combat.
 - Fraction displays correctly.
 - Ready star only appears when appropriate.
 - No duplicate counter labels.
@@ -80,9 +84,13 @@ Test several supported counter relics.
 ## 7. Build Wishlist
 
 - Card compendium: right-click a visible card to add/remove Wishlist.
+- Deck view in a run: right-click a visible card to add/remove Wishlist.
+- Other grid-card screens: Shift+right-click can add/remove Wishlist without stealing normal right-click behavior.
+- Card compendium: toggle ★ Wishlisted only and confirm only favourited cards remain.
 - Relic collection: right-click a visible relic to add/remove Wishlist.
 - Restart and confirm Wishlist persists.
 - Matching reward/shop card or relic shows gold star.
+- Wishlist stars sit in the same top-right position on cards in compendium and deck view.
 - Left-click inspect remains normal.
 
 ## 8. Synergy Hints
@@ -113,6 +121,7 @@ Test several supported counter relics.
 - X-cost uses remaining planned energy.
 - Random/unknown outcomes remain unknown rather than consuming RNG.
 - Disable planning and confirm normal card play is untouched.
+- Drag Ghost Planner by its title and confirm it moves.
 - Multiplayer:
   - Share ON publishes plan summary
   - Share OFF stops publishing
@@ -123,8 +132,10 @@ Test several supported counter relics.
 
 - Open deck.
 - Confirm total/upgraded counts.
-- Click Type, Cost, State, Keyword and Utility filters.
+- Click Type, Cost, State, Keyword, Utility and ★ Wishlist filters.
+- ★ Wishlist highlights only favourited cards.
 - Matching cards stay full opacity; nonmatches dim.
+- Drag Deck X-Ray by its title and confirm the panel moves.
 - Click selected filter again / Clear Highlight to restore deck.
 - Disable module while deck is open and confirm every card returns to normal opacity.
 
@@ -146,6 +157,7 @@ Test several supported counter relics.
 - Attack intents should appear as known incoming damage.
 - Random/unknown effects must not be presented as certain.
 - Timeline should update as combat state changes.
+- Drag Turn Timeline by its title and confirm it moves.
 
 ## 14. Choice Compare
 
@@ -158,6 +170,7 @@ Test several supported counter relics.
 - Fourth item should be rejected until one is removed.
 - Leaving reward/shop screen should clear the tray.
 - Normal left-click/select behavior remains untouched.
+- Drag Choice Compare by its title and confirm it moves.
 
 ## 15. Trading
 
@@ -196,6 +209,7 @@ Gifting:
 - acceptance is still required.
 
 Synchronization:
+- Drag the Trading panel by its title and confirm it moves.
 - target receives Accept / Decline.
 - decline changes nothing.
 - accepted exchange occurs once.
