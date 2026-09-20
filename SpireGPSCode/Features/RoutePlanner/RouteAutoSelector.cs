@@ -71,10 +71,10 @@ internal static class RouteAutoSelector
 
         _lastAttemptKey = key;
 
-        if (SpireGpsSettings.ConfirmAutoTravel)
-            ShowConfirmation(screen, node, route);
-        else
+        if (SpireGpsSettings.RushAutoTravel)
             SelectNode(screen, node);
+        else
+            ShowConfirmation(screen, node, route);
     }
 
     private static MapPoint? GetNextPoint(RouteInfo route, MapPoint? current, MapPoint? startingPoint)
