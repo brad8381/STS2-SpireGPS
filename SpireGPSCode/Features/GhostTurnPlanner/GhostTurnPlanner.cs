@@ -73,6 +73,9 @@ internal static class GhostTurnPlannerService
 
     internal static void SetActive(bool active)
     {
+        if (_active == active && (active || _pendingCard is null))
+            return;
+
         _active = active;
         if (!active)
             _pendingCard = null;
@@ -566,7 +569,7 @@ internal partial class GhostTurnPlannerPanel : PanelContainer
     public override void _Process(double delta)
     {
         Visible = SpireGpsSettings.GhostTurnPlannerEnabled;
-        if (!Visible && GhostTurnPlannerService.IsActive)
+        if (!Visible)
             GhostTurnPlannerService.SetActive(false);
     }
 
