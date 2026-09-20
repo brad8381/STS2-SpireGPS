@@ -258,9 +258,6 @@ internal static class TurnTimelineCombatUiPatch
 {
     private static void Postfix(NCombatUi __instance)
     {
-        if (!SpireGpsSettings.TurnTimelineEnabled)
-            return;
-
         if (__instance.GetNodeOrNull<TurnTimelinePanel>("TurnTimelinePanel") is not null)
             return;
 
