@@ -343,6 +343,7 @@ internal partial class ChoiceCompareLayer : CanvasLayer
 {
     private PanelContainer _panel = null!;
     private HBoxContainer _columns = null!;
+    private bool _userPositioned;
 
     public ChoiceCompareLayer()
     {
@@ -392,6 +393,7 @@ internal partial class ChoiceCompareLayer : CanvasLayer
         };
         title.AddThemeFontSizeOverride("font_size", 19);
         top.AddChild(title);
+        PanelDrag.Attach(title, _panel, () => _userPositioned = true);
 
         var clear = new Button
         {
@@ -442,7 +444,8 @@ internal partial class ChoiceCompareLayer : CanvasLayer
             _columns.AddChild(BuildColumn(entry));
 
         _panel.ResetSize();
-        Callable.From(PositionPanel).CallDeferred();
+        if (!_userPositioned)
+            Callable.From(PositionPanel).CallDeferred();
     }
 
     private Control BuildColumn(CompareEntry entry)
