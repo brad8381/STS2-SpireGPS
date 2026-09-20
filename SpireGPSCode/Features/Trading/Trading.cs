@@ -902,6 +902,7 @@ internal static class TradingService
 public sealed class TradePolicyMessage : INetMessage, IPacketSerializable
 {
     public bool ShouldBroadcast => true;
+    public bool ShouldBuffer => true;
     public NetTransferMode Mode => NetTransferMode.Reliable;
     public LogLevel LogLevel => LogLevel.VeryDebug;
 
@@ -933,6 +934,7 @@ public sealed class TradePolicyMessage : INetMessage, IPacketSerializable
 public sealed class TradePolicyRequestMessage : INetMessage, IPacketSerializable
 {
     public bool ShouldBroadcast => false;
+    public bool ShouldBuffer => false;
     public NetTransferMode Mode => NetTransferMode.Reliable;
     public LogLevel LogLevel => LogLevel.VeryDebug;
 
@@ -948,6 +950,7 @@ public sealed class TradePolicyRequestMessage : INetMessage, IPacketSerializable
 public sealed class TradeCancelMessage : INetMessage, IPacketSerializable
 {
     public bool ShouldBroadcast => true;
+    public bool ShouldBuffer => false;
     public NetTransferMode Mode => NetTransferMode.Reliable;
     public LogLevel LogLevel => LogLevel.VeryDebug;
 
@@ -963,6 +966,7 @@ public sealed class TradeCancelMessage : INetMessage, IPacketSerializable
 public sealed class TradeProposalMessage : INetMessage, IPacketSerializable
 {
     public bool ShouldBroadcast => true;
+    public bool ShouldBuffer => false;
     public NetTransferMode Mode => NetTransferMode.Reliable;
     public LogLevel LogLevel => LogLevel.VeryDebug;
 
@@ -1012,6 +1016,7 @@ public sealed class TradeProposalMessage : INetMessage, IPacketSerializable
 public sealed class TradeExecuteMessage : INetMessage, IPacketSerializable
 {
     public bool ShouldBroadcast => true;
+    public bool ShouldBuffer => false;
     public NetTransferMode Mode => NetTransferMode.Reliable;
     public LogLevel LogLevel => LogLevel.VeryDebug;
 
