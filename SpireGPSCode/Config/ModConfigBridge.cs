@@ -302,7 +302,7 @@ internal static class ModConfigBridge
         Load("preferredRouteEnabled", true);
         Load("autoHighlightPreferredRoute", true);
         Load("routeAutoSelectNextNode", false);
-        Load("routeConfirmAutoTravel", true);
+        Load("routeRushAutoTravel", false);
 
         Load("routePrioritiesEnabled", true);
         Load("routePriority1", "Elites ↑");
