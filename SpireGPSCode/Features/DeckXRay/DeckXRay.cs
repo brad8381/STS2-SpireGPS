@@ -204,6 +204,15 @@ internal partial class DeckXRayPanel : PanelContainer
             return;
         }
 
+        if (!SpireGpsSettings.DeckXRayEnabled)
+        {
+            Visible = false;
+            ClearHighlight();
+            return;
+        }
+
+        Visible = true;
+
         ulong now = Time.GetTicksMsec();
         if (_lastDeckCount != _player.Deck.Cards.Count || now >= _nextRefreshAt)
         {
@@ -288,6 +297,16 @@ internal partial class DeckXRayPanel : PanelContainer
             pair.Value.Disabled = count == 0;
             pair.Value.SetPressedNoSignal(pair.Key == _activeFilter);
         }
+    }
+
+    private void ClearHighlight()
+    {
+        var grid = _screen.GetNodeOrNull<NCardGrid>("CardGrid");
+        if (grid is null)
+            return;
+
+        foreach (NGridCardHolder holder in grid.CurrentlyDisplayedCardHolders)
+            holder.Modulate = Colors.White;
     }
 
     private void ApplyHighlight()
