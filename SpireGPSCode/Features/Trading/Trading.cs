@@ -97,6 +97,7 @@ internal static class TradingService
     private static bool _hostTradingEnabled;
     private static bool _hostAllowCards = true;
     private static bool _hostAllowRelics = true;
+    private static bool _hostAllowGold = true;
     private static bool _hostAllowGifting;
 
     internal static event Action? Changed;
@@ -115,6 +116,13 @@ internal static class TradingService
         _netService?.Type == NetGameType.Host
             ? SpireGpsSettings.TradingAllowRelics
             : _hostPolicyReceived && _hostAllowRelics;
+
+    private static bool EffectiveAllowGold =>
+        _netService?.Type == NetGameType.Host
+            ? SpireGpsSettings.TradingAllowGold
+            : _hostPolicyReceived && _hostAllowGold;
+
+    internal static bool GoldTradingEnabled => EffectiveAllowGold;
 
     internal static bool AllowGifting =>
         _netService?.Type == NetGameType.Host
@@ -349,6 +357,7 @@ internal static class TradingService
             _hostTradingEnabled = SpireGpsSettings.TradingEnabled;
             _hostAllowCards = SpireGpsSettings.TradingAllowCards;
             _hostAllowRelics = SpireGpsSettings.TradingAllowRelics;
+            _hostAllowGold = SpireGpsSettings.TradingAllowGold;
             _hostAllowGifting = SpireGpsSettings.TradingAllowGifting;
         }
     }
@@ -362,6 +371,7 @@ internal static class TradingService
         _hostTradingEnabled = SpireGpsSettings.TradingEnabled;
         _hostAllowCards = SpireGpsSettings.TradingAllowCards;
         _hostAllowRelics = SpireGpsSettings.TradingAllowRelics;
+        _hostAllowGold = SpireGpsSettings.TradingAllowGold;
         _hostAllowGifting = SpireGpsSettings.TradingAllowGifting;
 
         _netService.SendMessage(new TradePolicyMessage
@@ -369,6 +379,7 @@ internal static class TradingService
             Enabled = _hostTradingEnabled,
             AllowCards = _hostAllowCards,
             AllowRelics = _hostAllowRelics,
+            AllowGold = _hostAllowGold,
             AllowGifting = _hostAllowGifting
         });
     }
@@ -385,6 +396,7 @@ internal static class TradingService
         _hostTradingEnabled = message.Enabled;
         _hostAllowCards = message.AllowCards;
         _hostAllowRelics = message.AllowRelics;
+        _hostAllowGold = message.AllowGold;
         _hostAllowGifting = message.AllowGifting;
 
         Changed?.Invoke();
@@ -541,10 +553,10 @@ internal static class TradingService
             var aRelicSave = aLeg.Relic?.ToSerializable();
             var bRelicSave = bLeg.Relic?.ToSerializable();
 
-            int aCardIndex = aCard is null ? -1 : playerA.Deck.Cards.IndexOf(aCard);
-            int bCardIndex = bCard is null ? -1 : playerB.Deck.Cards.IndexOf(bCard);
-            int aRelicIndex = aLeg.Relic is null ? -1 : playerA.Relics.IndexOf(aLeg.Relic);
-            int bRelicIndex = bLeg.Relic is null ? -1 : playerB.Relics.IndexOf(bLeg.Relic);
+            int aCardIndex = aCard is null ? -1 : playerA.Deck.Cards.ToList().IndexOf(aCard);
+            int bCardIndex = bCard is null ? -1 : playerB.Deck.Cards.ToList().IndexOf(bCard);
+            int aRelicIndex = aLeg.Relic is null ? -1 : playerA.Relics.ToList().IndexOf(aLeg.Relic);
+            int bRelicIndex = bLeg.Relic is null ? -1 : playerB.Relics.ToList().IndexOf(bLeg.Relic);
 
             if (aCard is not null)
                 playerA.Deck.RemoveInternal(aCard);
@@ -697,7 +709,7 @@ internal static class TradingService
             }
 
             case TradeLegKind.Gold:
-                if (goldAmount <= 0 || goldAmount > owner.Gold)
+                if (!EffectiveAllowGold || goldAmount <= 0 || goldAmount > owner.Gold)
                     return false;
 
                 leg = new ResolvedTradeLeg
@@ -749,6 +761,7 @@ public sealed class TradePolicyMessage : INetMessage, IPacketSerializable
     public bool Enabled;
     public bool AllowCards;
     public bool AllowRelics;
+    public bool AllowGold;
     public bool AllowGifting;
 
     public void Serialize(PacketWriter writer)
@@ -756,6 +769,7 @@ public sealed class TradePolicyMessage : INetMessage, IPacketSerializable
         writer.WriteBool(Enabled);
         writer.WriteBool(AllowCards);
         writer.WriteBool(AllowRelics);
+        writer.WriteBool(AllowGold);
         writer.WriteBool(AllowGifting);
     }
 
@@ -764,6 +778,7 @@ public sealed class TradePolicyMessage : INetMessage, IPacketSerializable
         Enabled = reader.ReadBool();
         AllowCards = reader.ReadBool();
         AllowRelics = reader.ReadBool();
+        AllowGold = reader.ReadBool();
         AllowGifting = reader.ReadBool();
     }
 }
@@ -1080,7 +1095,8 @@ internal partial class TradingPanel : PanelContainer
         button.Clear();
         button.AddItem("Card", (int)TradeLegKind.Card);
         button.AddItem("Relic", (int)TradeLegKind.Relic);
-        button.AddItem("Gold", (int)TradeLegKind.Gold);
+        if (TradingService.GoldTradingEnabled)
+            button.AddItem("Gold", (int)TradeLegKind.Gold);
 
         if (allowNothing)
             button.AddItem("Nothing (Gift)", (int)TradeLegKind.None);
