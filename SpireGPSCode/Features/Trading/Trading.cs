@@ -90,6 +90,9 @@ internal static class TradingService
     private static bool _handlersRegistered;
     private static NRestSiteRoom? _room;
 
+    private static readonly FieldInfo? TradeButtonUnclickableField =
+        AccessTools.Field(typeof(NRestSiteButton), "_isUnclickable");
+
     private static readonly HashSet<ulong> ReadyPlayers = new();
     private static readonly HashSet<ulong> CompletedPlayers = new();
 
@@ -163,7 +166,31 @@ internal static class TradingService
         if (_netService?.Type == NetGameType.Host)
             BroadcastPolicy();
 
+        RefreshTradeOptionUi();
         Changed?.Invoke();
+    }
+
+    internal static void RefreshTradeOptionUi()
+    {
+        if (_room is null || !GodotObject.IsInstanceValid(_room))
+            return;
+
+        foreach (var option in _room.Options.OfType<TradeRestSiteOption>())
+        {
+            option.IsEnabled = IsAvailable && !CompletedPlayers.Contains(option.OwnerPlayer.NetId);
+
+            var button = _room.GetButtonForOption(option);
+            if (button is null)
+                continue;
+
+            button.Visible = IsAvailable;
+            TradeButtonUnclickableField?.SetValue(button, !option.IsEnabled);
+
+            if (option.IsEnabled)
+                button.Enable();
+            else
+                button.Disable();
+        }
     }
 
     internal static bool CanChooseTrade(Player player)
@@ -399,6 +426,7 @@ internal static class TradingService
         _hostAllowGold = message.AllowGold;
         _hostAllowGifting = message.AllowGifting;
 
+        RefreshTradeOptionUi();
         Changed?.Invoke();
     }
 
@@ -1323,6 +1351,8 @@ internal static class TradingRestSiteReloadPatch
         {
             return true;
         }
+
+        __instance.Visible = TradingService.IsAvailable;
 
         if (IconField?.GetValue(__instance) is TextureRect icon)
             icon.Texture = new HealRestSiteOption(trade.OwnerPlayer).Icon;
