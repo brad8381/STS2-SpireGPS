@@ -703,11 +703,14 @@ internal static class TradingService
                         : -1);
             }
 
+            RelicModel? relicFromAToB = null;
+            RelicModel? relicFromBToA = null;
+
             if (aRelicSave is not null)
             {
-                var relic = RelicModel.FromSerializable(aRelicSave);
+                relicFromAToB = RelicModel.FromSerializable(aRelicSave);
                 playerB.AddRelicInternal(
-                    relic,
+                    relicFromAToB,
                     bRelicIndex >= 0
                         ? Math.Min(bRelicIndex, playerB.Relics.Count)
                         : -1);
@@ -715,12 +718,24 @@ internal static class TradingService
 
             if (bRelicSave is not null)
             {
-                var relic = RelicModel.FromSerializable(bRelicSave);
+                relicFromBToA = RelicModel.FromSerializable(bRelicSave);
                 playerA.AddRelicInternal(
-                    relic,
+                    relicFromBToA,
                     aRelicIndex >= 0
                         ? Math.Min(aRelicIndex, playerA.Relics.Count)
                         : -1);
+            }
+
+            if (aLeg.Relic is not null ||
+                bLeg.Relic is not null ||
+                relicFromAToB is not null ||
+                relicFromBToA is not null)
+            {
+                TaskHelper.RunSafely(RunRelicTransferHooks(
+                    aLeg.Relic,
+                    bLeg.Relic,
+                    relicFromAToB,
+                    relicFromBToA));
             }
 
             if (aLeg.GoldAmount > 0 || bLeg.GoldAmount > 0)
@@ -753,6 +768,32 @@ internal static class TradingService
         {
             MainFile.Logger.Error($"Trading failed open while applying trade: {ex}");
             return false;
+        }
+    }
+
+    private static async Task RunRelicTransferHooks(
+        RelicModel? removedFromA,
+        RelicModel? removedFromB,
+        RelicModel? addedToB,
+        RelicModel? addedToA)
+    {
+        try
+        {
+            if (removedFromA is not null)
+                await removedFromA.AfterRemoved();
+
+            if (removedFromB is not null)
+                await removedFromB.AfterRemoved();
+
+            if (addedToB is not null)
+                await addedToB.AfterObtained();
+
+            if (addedToA is not null)
+                await addedToA.AfterObtained();
+        }
+        catch (Exception ex)
+        {
+            MainFile.Logger.Error($"Trading relic transfer hook failed: {ex}");
         }
     }
 
