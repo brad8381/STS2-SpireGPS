@@ -162,22 +162,25 @@ internal static class GhostTurnPlannerService
     }
 
     internal static bool TryAssignTarget(NCreature creature)
+        => TryAssignTarget(creature.Entity);
+
+    internal static bool TryAssignTarget(Creature creature)
     {
         if (!IsAwaitingTarget || _pendingCard is null)
             return false;
 
-        if (creature.Entity.CombatId is not uint combatId)
+        if (creature.CombatId is not uint combatId)
             return false;
 
-        if (!TargetAllowed(_pendingCard, creature.Entity))
+        if (!TargetAllowed(_pendingCard, creature))
         {
             SpireGpsToast.Show($"Ghost Planner: invalid target for {_pendingCard.Title}.");
             return true;
         }
 
-        string label = creature.Entity.IsEnemy
-            ? creature.Entity.Monster?.Title.GetFormattedText() ?? "Enemy"
-            : creature.Entity.Player?.Character.Title.GetFormattedText() ?? "Player";
+        string label = creature.IsEnemy
+            ? creature.Monster?.Title.GetFormattedText() ?? "Enemy"
+            : creature.Player?.Character.Title.GetFormattedText() ?? "Player";
 
         var card = _pendingCard;
         _pendingCard = null;
