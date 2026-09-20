@@ -3,6 +3,8 @@ using System.Reflection;
 using Godot;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
+using MegaCrit.Sts2.Core.Saves;
+using MegaCrit.Sts2.Core.TestSupport;
 using SpireGPS.Config;
 
 namespace SpireGPS.Features.RoutePlanner;
@@ -36,8 +38,15 @@ internal static class RouteAutoSelector
         var runState = MainFile.RunState;
         var route = RoutePlannerService.SelectedRoute;
 
-        if (screen is null || !screen.IsOpen || runState is null || route is null)
+        if (screen is null ||
+            !screen.IsOpen ||
+            (!screen.IsTravelEnabled && !screen.IsDebugTravelEnabled) ||
+            screen.Drawings.GetLocalDrawingMode() != DrawingMode.None ||
+            runState is null ||
+            route is null)
+        {
             return;
+        }
 
         var nextPoint = GetNextPoint(route, runState.CurrentMapPoint, runState.Map?.StartingMapPoint);
         if (nextPoint is null)
@@ -46,6 +55,15 @@ internal static class RouteAutoSelector
         var node = FindMapNode(screen, nextPoint.coord);
         if (node is null || node.State != MapPointState.Travelable)
             return;
+
+        // Match the vanilla map-point guard rather than bypassing the first
+        // map-selection tutorial with an automatic vote/travel.
+        if (node.Point.coord.row == 0 &&
+            TestMode.IsOff &&
+            !SaveManager.Instance.SeenFtue("map_select_ftue"))
+        {
+            return;
+        }
 
         string key = $"{runState.CurrentActIndex}:{runState.CurrentMapCoord}:{route.Index}:{nextPoint.coord}";
         if (!force && key == _lastAttemptKey)
