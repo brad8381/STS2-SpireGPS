@@ -8,6 +8,8 @@ using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using SpireGPS.Config;
+using SpireGPS.Features.Wishlist;
+using SpireGPS.UI;
 
 namespace SpireGPS.Features.DeckXRay;
 
@@ -53,6 +55,7 @@ internal static class DeckXRayService
             "AoE" => card.TargetType == TargetType.AllEnemies,
             "Draw" => CardTextContains(card, "draw"),
             "EnergySource" => card.DynamicVars.ContainsKey("Energy") && CardTextContains(card, "gain"),
+            "Wishlist" => WishlistService.IsCardWishlisted(card),
             _ => true
         };
     }
@@ -136,6 +139,7 @@ internal partial class DeckXRayPanel : PanelContainer
         };
         title.AddThemeFontSizeOverride("font_size", 20);
         _content.AddChild(title);
+        PanelDrag.Attach(title, this);
 
         _summary = new Label
         {
@@ -180,6 +184,11 @@ internal partial class DeckXRayPanel : PanelContainer
             ("AoE", "AoE"),
             ("Draw", "Draw"),
             ("EnergySource", "Energy")
+        });
+
+        AddSection("BUILD", new[]
+        {
+            ("Wishlist", "★ Wishlist")
         });
 
         var clear = new Button
@@ -284,7 +293,8 @@ internal partial class DeckXRayPanel : PanelContainer
             ["Block"] = "Block",
             ["AoE"] = "AoE",
             ["Draw"] = "Draw",
-            ["EnergySource"] = "Energy"
+            ["EnergySource"] = "Energy",
+            ["Wishlist"] = "★ Wishlist"
         };
 
         foreach (var pair in _filterButtons)
