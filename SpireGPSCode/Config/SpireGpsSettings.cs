@@ -14,7 +14,7 @@ internal static class SpireGpsSettings
     internal static bool PreferredRouteEnabled { get; set; } = true;
     internal static bool AutoHighlightPreferredRoute { get; set; } = true;
     internal static bool AutoSelectNextNode { get; set; } = false;
-    internal static bool ConfirmAutoTravel { get; set; } = true;
+    internal static bool RushAutoTravel { get; set; } = false;
 
     internal static bool RoutePrioritiesEnabled { get; set; } = true;
     internal static string RoutePriority1 { get; set; } = "Elites ↑";
@@ -86,7 +86,7 @@ internal static class SpireGpsSettings
             case "preferredRouteEnabled": PreferredRouteEnabled = Convert.ToBoolean(value); break;
             case "autoHighlightPreferredRoute": AutoHighlightPreferredRoute = Convert.ToBoolean(value); break;
             case "routeAutoSelectNextNode": AutoSelectNextNode = Convert.ToBoolean(value); break;
-            case "routeConfirmAutoTravel": ConfirmAutoTravel = Convert.ToBoolean(value); break;
+            case "routeRushAutoTravel": RushAutoTravel = Convert.ToBoolean(value); break;
 
             case "routePrioritiesEnabled": RoutePrioritiesEnabled = Convert.ToBoolean(value); break;
             case "routePriority1": RoutePriority1 = Convert.ToString(value) ?? "Elites ↑"; break;
