@@ -4,7 +4,7 @@
   "author": "Brad Wilson",
   "description": "A modular Slay the Spire 2 tweak pack with route planning, guards, drawing tools, deck inspection, planning, comparison, multiplayer pings, and optional co-op trading.",
   "version": "0.1.0",
-  "min_game_version": "0.107.0",
+  "min_game_version": "0.107.1",
   "has_pck": false,
   "has_dll": true,
   "dependencies": [],
