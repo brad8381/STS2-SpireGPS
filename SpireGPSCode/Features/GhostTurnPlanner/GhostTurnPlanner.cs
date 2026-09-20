@@ -212,31 +212,55 @@ internal static class GhostTurnPlannerService
             step.Card.EnergyCost.CostsX ? $"X={cost}" : $"{cost}E"
         };
 
+        if (TryGetKnownDamage(step.Card, out int damage, out int hits))
+            pieces.Add(hits > 1 ? $"DMG {damage}x{hits}" : $"DMG {damage}");
+
+        if (TryGetKnownBlock(step.Card, out int block))
+            pieces.Add($"BLK {block}");
+
         try
         {
-            if (step.Card.DynamicVars.TryGetValue("Damage", out var damage))
-            {
-                int repeat = 1;
-                if (step.Card.DynamicVars.TryGetValue("Repeat", out var repeatVar))
-                    repeat = Math.Max(1, repeatVar.IntValue);
-
-                pieces.Add(repeat > 1
-                    ? $"DMG {damage.IntValue}x{repeat}"
-                    : $"DMG {damage.IntValue}");
-            }
-
-            if (step.Card.DynamicVars.TryGetValue("Block", out var block))
-                pieces.Add($"BLK {block.IntValue}");
-
             if (step.Card.DynamicVars.TryGetValue("PoisonPower", out var poison))
                 pieces.Add($"Poison {poison.IntValue}");
         }
         catch
         {
-            // Dynamic vars are optional and modded cards may expose unusual data.
+            // Optional dynamic vars can be absent on modded cards.
         }
 
         return string.Join(" | ", pieces);
+    }
+
+    internal static (int damage, int block, int unknownSteps) CalculateKnownProjection()
+    {
+        int damage = 0;
+        int block = 0;
+        int unknown = 0;
+
+        foreach (var step in Steps)
+        {
+            bool knewSomething = false;
+
+            if (TryGetKnownDamage(step.Card, out int hitDamage, out int hits))
+            {
+                damage += Math.Max(0, hitDamage) * Math.Max(1, hits);
+                knewSomething = true;
+            }
+
+            if (TryGetKnownBlock(step.Card, out int stepBlock))
+            {
+                block += Math.Max(0, stepBlock);
+                knewSomething = true;
+            }
+
+            if (!knewSomething &&
+                step.Card.Type is CardType.Attack or CardType.Skill)
+            {
+                unknown++;
+            }
+        }
+
+        return (damage, block, unknown);
     }
 
     internal static string BuildSummary()
@@ -255,6 +279,56 @@ internal static class GhostTurnPlannerService
         }
 
         return string.Join("\n", lines);
+    }
+
+    private static bool TryGetKnownDamage(CardModel card, out int damage, out int hits)
+    {
+        damage = 0;
+        hits = 1;
+
+        try
+        {
+            if (card.DynamicVars.TryGetValue("CalculatedDamage", out var calculated))
+                damage = calculated.IntValue;
+            else if (card.DynamicVars.TryGetValue("Damage", out var normal))
+                damage = normal.IntValue;
+            else
+                return false;
+
+            if (card.DynamicVars.TryGetValue("Repeat", out var repeat))
+                hits = Math.Max(1, repeat.IntValue);
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool TryGetKnownBlock(CardModel card, out int block)
+    {
+        block = 0;
+
+        try
+        {
+            if (card.DynamicVars.TryGetValue("CalculatedBlock", out var calculated))
+            {
+                block = calculated.IntValue;
+                return true;
+            }
+
+            if (card.DynamicVars.TryGetValue("Block", out var normal))
+            {
+                block = normal.IntValue;
+                return true;
+            }
+        }
+        catch
+        {
+        }
+
+        return false;
     }
 
     private static void AddStep(CardModel card, uint? targetCombatId, string targetLabel)
@@ -509,9 +583,15 @@ internal partial class GhostTurnPlannerPanel : PanelContainer
         }
         else
         {
+            var projection = GhostTurnPlannerService.CalculateKnownProjection();
+            string known =
+                $"Known: {projection.damage} damage | {projection.block} Block" +
+                (projection.unknownSteps > 0 ? $" | {projection.unknownSteps} effect(s) ?" : string.Empty);
+
             _status.Text =
                 $"{energy.startingEnergy} energy -> {energy.remainingEnergy} remaining" +
                 (energy.overBudget ? "  ⚠ current plan exceeds available energy" : string.Empty) +
+                $"\n{known}" +
                 "\nRight-click hand cards to plan. Click a planned row to remove it.";
         }
 
