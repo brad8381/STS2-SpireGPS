@@ -52,12 +52,29 @@ internal static class DeckXRayService
             "Retain" => card.Keywords.Contains(CardKeyword.Retain),
             "Innate" => card.Keywords.Contains(CardKeyword.Innate),
             "Unplayable" => card.Keywords.Contains(CardKeyword.Unplayable),
+            "Block" => card.DynamicVars.ContainsKey("Block") || card.DynamicVars.ContainsKey("CalculatedBlock"),
+            "AoE" => card.TargetType == TargetType.AllEnemies,
+            "Draw" => CardTextContains(card, "draw"),
+            "EnergySource" => card.DynamicVars.ContainsKey("Energy") && CardTextContains(card, "gain"),
             _ => true
         };
     }
 
     internal static int Count(IEnumerable<CardModel> cards, string key)
         => cards.Count(card => Matches(card, key));
+
+    private static bool CardTextContains(CardModel card, string text)
+    {
+        try
+        {
+            return card.GetDescriptionForPile(PileType.Deck)
+                .Contains(text, StringComparison.CurrentCultureIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }
 
 internal partial class DeckXRayPanel : PanelContainer
@@ -160,6 +177,14 @@ internal partial class DeckXRayPanel : PanelContainer
             ("Unplayable", "Unplayable")
         });
 
+        AddSection("UTILITY", new[]
+        {
+            ("Block", "Block"),
+            ("AoE", "AoE"),
+            ("Draw", "Draw"),
+            ("EnergySource", "Energy")
+        });
+
         var clear = new Button
         {
             Text = "Clear Highlight",
@@ -249,7 +274,11 @@ internal partial class DeckXRayPanel : PanelContainer
             ["Ethereal"] = "Ethereal",
             ["Retain"] = "Retain",
             ["Innate"] = "Innate",
-            ["Unplayable"] = "Unplayable"
+            ["Unplayable"] = "Unplayable",
+            ["Block"] = "Block",
+            ["AoE"] = "AoE",
+            ["Draw"] = "Draw",
+            ["EnergySource"] = "Energy"
         };
 
         foreach (var pair in _filterButtons)
