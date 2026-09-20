@@ -1,3 +1,4 @@
+using Godot;
 using System.Reflection;
 using HarmonyLib;
 using MegaCrit.Sts2.addons.mega_text;
@@ -7,6 +8,42 @@ using MegaCrit.Sts2.Core.Nodes.Relics;
 using SpireGPS.Config;
 
 namespace SpireGPS.Features.RelicProgress;
+
+internal static class RelicProgressService
+{
+    private static readonly MethodInfo? RefreshAmountMethod =
+        AccessTools.Method(typeof(NRelicInventoryHolder), "RefreshAmount");
+
+    internal static void RefreshAll()
+    {
+        if (Engine.GetMainLoop() is not SceneTree tree || RefreshAmountMethod is null)
+            return;
+
+        foreach (var holder in FindNodes<NRelicInventoryHolder>(tree.Root))
+        {
+            try
+            {
+                RefreshAmountMethod.Invoke(holder, null);
+            }
+            catch (Exception ex)
+            {
+                MainFile.Logger.Warn($"Relic Progress refresh skipped a holder: {ex.Message}");
+            }
+        }
+    }
+
+    private static IEnumerable<T> FindNodes<T>(Node root) where T : Node
+    {
+        foreach (Node child in root.GetChildren())
+        {
+            if (child is T match)
+                yield return match;
+
+            foreach (var nested in FindNodes<T>(child))
+                yield return nested;
+        }
+    }
+}
 
 internal readonly record struct RelicProgressInfo(int Current, int Threshold, bool CanShowReady);
 
