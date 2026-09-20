@@ -52,30 +52,45 @@ internal sealed class ResolvedTradeLeg
     internal string Label { get; init; } = string.Empty;
 }
 
-internal sealed class TradeRestSiteOption(Player owner) : RestSiteOption(owner)
+internal sealed class TradeRestSiteOption : RestSiteOption
 {
-    internal Player OwnerPlayer => owner;
+    private readonly Player _owner;
+    private bool _isEnabled;
+
+    internal Player OwnerPlayer => _owner;
 
     public override string OptionId => "SPIREGPS_TRADE";
+    public override bool IsEnabled => _isEnabled;
 
-    public override IEnumerable<string> AssetPaths => new HealRestSiteOption(owner).AssetPaths;
+    public override IEnumerable<string> AssetPaths => new HealRestSiteOption(_owner).AssetPaths;
+
+    internal TradeRestSiteOption(Player owner) : base(owner)
+    {
+        _owner = owner;
+        _isEnabled = TradingService.CanChooseTrade(owner);
+    }
+
+    internal void SetEnabled(bool enabled)
+    {
+        _isEnabled = enabled;
+    }
 
     public override async Task<bool> OnSelect()
     {
-        if (!TradingService.CanChooseTrade(owner))
+        if (!TradingService.CanChooseTrade(_owner))
             return false;
 
-        decimal heal = Math.Ceiling(owner.Creature.MaxHp * 0.15m);
+        decimal heal = Math.Ceiling(_owner.Creature.MaxHp * 0.15m);
         if (heal > 0)
-            await CreatureCmd.Heal(owner.Creature, heal);
+            await CreatureCmd.Heal(_owner.Creature, heal);
 
-        TradingService.MarkTradeReady(owner.NetId);
+        TradingService.MarkTradeReady(_owner.NetId);
         return true;
     }
 
     public override Task DoLocalPostSelectVfx(CancellationToken ct = default)
     {
-        if (LocalContext.IsMe(owner))
+        if (LocalContext.IsMe(_owner))
             TradingService.OpenLocalTradePanel();
 
         return Task.CompletedTask;
@@ -199,7 +214,7 @@ internal static class TradingService
 
         foreach (var option in _room.Options.OfType<TradeRestSiteOption>())
         {
-            option.IsEnabled = IsAvailable && !CompletedPlayers.Contains(option.OwnerPlayer.NetId);
+            option.SetEnabled(IsAvailable && !CompletedPlayers.Contains(option.OwnerPlayer.NetId));
 
             var button = _room.GetButtonForOption(option);
             if (button is null)
@@ -1452,10 +1467,7 @@ internal static class TradingRestSiteOptionsPatch
         if (player.RunState.Players.Count <= 1)
             return;
 
-        __result.Add(new TradeRestSiteOption(player)
-        {
-            IsEnabled = TradingService.IsAvailable
-        });
+        __result.Add(new TradeRestSiteOption(player));
     }
 }
 
