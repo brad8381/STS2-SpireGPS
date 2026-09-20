@@ -162,6 +162,7 @@ internal static class TradingService
             _hostAllowRelics = true;
             _hostAllowGold = true;
             _hostAllowGifting = false;
+            RequestPolicy();
         }
     }
 
@@ -174,6 +175,8 @@ internal static class TradingService
 
         if (_netService?.Type == NetGameType.Host)
             BroadcastPolicy();
+        else
+            RequestPolicy();
 
         Changed?.Invoke();
     }
@@ -387,6 +390,7 @@ internal static class TradingService
                 _netService.UnregisterMessageHandler<TradeProposalMessage>(HandleProposal);
                 _netService.UnregisterMessageHandler<TradeExecuteMessage>(HandleExecute);
                 _netService.UnregisterMessageHandler<TradePolicyMessage>(HandlePolicy);
+                _netService.UnregisterMessageHandler<TradePolicyRequestMessage>(HandlePolicyRequest);
                 _netService.UnregisterMessageHandler<TradeCancelMessage>(HandleCancel);
             }
             catch { }
@@ -396,6 +400,7 @@ internal static class TradingService
         _netService.RegisterMessageHandler<TradeProposalMessage>(HandleProposal);
         _netService.RegisterMessageHandler<TradeExecuteMessage>(HandleExecute);
         _netService.RegisterMessageHandler<TradePolicyMessage>(HandlePolicy);
+        _netService.RegisterMessageHandler<TradePolicyRequestMessage>(HandlePolicyRequest);
         _netService.RegisterMessageHandler<TradeCancelMessage>(HandleCancel);
         _handlersRegistered = true;
 
@@ -415,6 +420,11 @@ internal static class TradingService
         if (_netService?.Type != NetGameType.Host)
             return;
 
+        _netService.SendMessage(BuildPolicyMessage());
+    }
+
+    private static TradePolicyMessage BuildPolicyMessage()
+    {
         _hostPolicyReceived = true;
         _hostTradingEnabled = SpireGpsSettings.TradingEnabled;
         _hostAllowCards = SpireGpsSettings.TradingAllowCards;
@@ -422,14 +432,30 @@ internal static class TradingService
         _hostAllowGold = SpireGpsSettings.TradingAllowGold;
         _hostAllowGifting = SpireGpsSettings.TradingAllowGifting;
 
-        _netService.SendMessage(new TradePolicyMessage
+        return new TradePolicyMessage
         {
             Enabled = _hostTradingEnabled,
             AllowCards = _hostAllowCards,
             AllowRelics = _hostAllowRelics,
             AllowGold = _hostAllowGold,
             AllowGifting = _hostAllowGifting
-        });
+        };
+    }
+
+    private static void RequestPolicy()
+    {
+        if (_netService?.Type != NetGameType.Client)
+            return;
+
+        _netService.SendMessage(new TradePolicyRequestMessage());
+    }
+
+    private static void HandlePolicyRequest(TradePolicyRequestMessage message, ulong senderId)
+    {
+        if (_netService?.Type != NetGameType.Host || senderId == _netService.NetId)
+            return;
+
+        _netService.SendMessage(BuildPolicyMessage(), senderId);
     }
 
     private static void HandlePolicy(TradePolicyMessage message, ulong senderId)
@@ -861,6 +887,21 @@ public sealed class TradePolicyMessage : INetMessage, IPacketSerializable
         AllowRelics = reader.ReadBool();
         AllowGold = reader.ReadBool();
         AllowGifting = reader.ReadBool();
+    }
+}
+
+public sealed class TradePolicyRequestMessage : INetMessage, IPacketSerializable
+{
+    public bool ShouldBroadcast => false;
+    public NetTransferMode Mode => NetTransferMode.Reliable;
+    public LogLevel LogLevel => LogLevel.VeryDebug;
+
+    public void Serialize(PacketWriter writer)
+    {
+    }
+
+    public void Deserialize(PacketReader reader)
+    {
     }
 }
 
