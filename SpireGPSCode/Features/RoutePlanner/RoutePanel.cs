@@ -1,6 +1,7 @@
 using Godot;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using SpireGPS.Config;
+using SpireGPS.UI;
 
 namespace SpireGPS.Features.RoutePlanner;
 
@@ -45,13 +46,14 @@ internal partial class RoutePanelLayer : CanvasLayer
     private Label _status = null!;
     private CheckBox _autoSelectSuggested = null!;
     private CheckBox _autoSelectNextNode = null!;
-    private CheckBox _confirmAutoTravel = null!;
+    private CheckBox _rushAutoTravel = null!;
     private OptionButton _priority1 = null!;
     private OptionButton _priority2 = null!;
     private OptionButton _priority3 = null!;
     private HBoxContainer _headers = null!;
     private VBoxContainer _rows = null!;
     private bool _mapWasOpen;
+    private bool _userPositioned;
 
     public RoutePanelLayer()
     {
@@ -77,7 +79,7 @@ internal partial class RoutePanelLayer : CanvasLayer
 
         _panel.Visible = shouldShow;
 
-        if (shouldShow)
+        if (shouldShow && !_userPositioned)
             PositionPanel();
 
         if (mapOpen && !_mapWasOpen)
@@ -102,7 +104,7 @@ internal partial class RoutePanelLayer : CanvasLayer
 
         _autoSelectSuggested.SetPressedNoSignal(SpireGpsSettings.AutoHighlightPreferredRoute);
         _autoSelectNextNode.SetPressedNoSignal(SpireGpsSettings.AutoSelectNextNode);
-        _confirmAutoTravel.SetPressedNoSignal(SpireGpsSettings.ConfirmAutoTravel);
+        _rushAutoTravel.SetPressedNoSignal(SpireGpsSettings.RushAutoTravel);
         SetPrioritySelection(_priority1, SpireGpsSettings.RoutePriority1);
         SetPrioritySelection(_priority2, SpireGpsSettings.RoutePriority2);
         SetPrioritySelection(_priority3, SpireGpsSettings.RoutePriority3);
@@ -131,6 +133,7 @@ internal partial class RoutePanelLayer : CanvasLayer
         };
         title.AddThemeFontSizeOverride("font_size", 18);
         outer.AddChild(title);
+        PanelDrag.Attach(title, _panel, () => _userPositioned = true);
 
         _status = new Label
         {
@@ -164,14 +167,14 @@ internal partial class RoutePanelLayer : CanvasLayer
         _autoSelectNextNode.Toggled += OnAutoSelectNextNodeToggled;
         travelRow.AddChild(_autoSelectNextNode);
 
-        _confirmAutoTravel = new CheckBox
+        _rushAutoTravel = new CheckBox
         {
-            Text = "Confirm before auto-travel",
-            ButtonPressed = SpireGpsSettings.ConfirmAutoTravel,
-            TooltipText = "Show a confirmation before Route Planner selects the next map node.",
+            Text = "Rush mode (skip confirmation)",
+            ButtonPressed = SpireGpsSettings.RushAutoTravel,
+            TooltipText = "Immediately select the next suggested node when the map opens. Leave off to require confirmation.",
         };
-        _confirmAutoTravel.Toggled += OnConfirmAutoTravelToggled;
-        travelRow.AddChild(_confirmAutoTravel);
+        _rushAutoTravel.Toggled += OnRushAutoTravelToggled;
+        travelRow.AddChild(_rushAutoTravel);
         outer.AddChild(travelRow);
 
         var priorityRow = new HBoxContainer
@@ -290,10 +293,13 @@ internal partial class RoutePanelLayer : CanvasLayer
             RouteAutoSelector.OnMapClosed();
     }
 
-    private void OnConfirmAutoTravelToggled(bool enabled)
+    private void OnRushAutoTravelToggled(bool enabled)
     {
-        SpireGpsSettings.ConfirmAutoTravel = enabled;
-        ModConfigBridge.SetValue("routeConfirmAutoTravel", enabled);
+        SpireGpsSettings.RushAutoTravel = enabled;
+        ModConfigBridge.SetValue("routeRushAutoTravel", enabled);
+
+        if (enabled && SpireGpsSettings.AutoSelectNextNode)
+            RouteAutoSelector.TrySelectNext(force: true);
     }
 
     private void RebuildHeaders()
