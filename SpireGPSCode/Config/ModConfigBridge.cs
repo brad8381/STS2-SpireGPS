@@ -150,7 +150,27 @@ internal static class ModConfigBridge
             Toggle("wishlistEnabled", "Enable Build Wishlist", true),
 
             Header("Multiplayer Pings"),
-            Toggle("multiplayerPingsEnabled", "Enable Multiplayer Pings", true)
+            Toggle("multiplayerPingsEnabled", "Enable Multiplayer Pings", true),
+
+            Header("Ghost Turn Planner"),
+            Toggle("ghostTurnPlannerEnabled", "Enable Ghost Turn Planner", true),
+
+            Header("Deck X-Ray"),
+            Toggle("deckXRayEnabled", "Enable Deck X-Ray", true),
+
+            Header("Trigger Inspector"),
+            Toggle("triggerInspectorEnabled", "Enable Trigger Inspector", true),
+
+            Header("Turn Timeline"),
+            Toggle("turnTimelineEnabled", "Enable Turn Timeline", true),
+
+            Header("Choice Compare"),
+            Toggle("choiceCompareEnabled", "Enable Choice Compare", true),
+
+            Header("Trading"),
+            Toggle("tradingEnabled", "Enable Trading", false),
+            Toggle("tradingAllowCards", "Allow Card Trades", true),
+            Toggle("tradingAllowRelics", "Allow Safe Relic Trades", true)
         };
 
         var result = Array.CreateInstance(_entryType!, entries.Count);
@@ -301,6 +321,16 @@ internal static class ModConfigBridge
         Load("synergyHintsMax", 3f);
         Load("wishlistEnabled", true);
         Load("multiplayerPingsEnabled", true);
+
+        Load("ghostTurnPlannerEnabled", true);
+        Load("deckXRayEnabled", true);
+        Load("triggerInspectorEnabled", true);
+        Load("turnTimelineEnabled", true);
+        Load("choiceCompareEnabled", true);
+
+        Load("tradingEnabled", false);
+        Load("tradingAllowCards", true);
+        Load("tradingAllowRelics", true);
 
         MainFile.RefreshRoutes();
     }
