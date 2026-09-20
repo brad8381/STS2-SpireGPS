@@ -8,7 +8,7 @@ namespace SpireGPS.Compatibility;
 
 internal static class CompatibilityManager
 {
-    internal const string HarmonyId = "brad8381.spiregps";
+    internal const string HarmonyId = "brad8381.banterstweaks";
 
     private static readonly HashSet<string> Logged = new();
 
