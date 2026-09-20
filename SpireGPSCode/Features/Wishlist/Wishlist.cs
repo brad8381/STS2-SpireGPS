@@ -10,6 +10,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.CardLibrary;
 using MegaCrit.Sts2.Core.Nodes.Screens.RelicCollection;
 using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
 using SpireGPS.Config;
+using SpireGPS.Features.ChoiceCompare;
 using SpireGPS.UI;
 
 namespace SpireGPS.Features.Wishlist;
@@ -196,9 +197,7 @@ internal static class WishlistCardRightClickPatch
 {
     private static bool Prefix(NCardHolder __instance, InputEvent inputEvent)
     {
-        if (!SpireGpsSettings.WishlistEnabled ||
-            __instance is not NGridCardHolder holder ||
-            !WishlistService.IsInsideCardLibrary(holder) ||
+        if (__instance is not NGridCardHolder holder ||
             inputEvent is not InputEventMouseButton mouse ||
             mouse.Pressed ||
             mouse.ButtonIndex != MouseButton.Right)
@@ -210,14 +209,25 @@ internal static class WishlistCardRightClickPatch
         if (card is null || holder.CardNode?.Visibility != ModelVisibility.Visible)
             return true;
 
-        WishlistService.ToggleCard(card);
+        if (SpireGpsSettings.WishlistEnabled && WishlistService.IsInsideCardLibrary(holder))
+        {
+            WishlistService.ToggleCard(card);
 
-        // Right-click normally emits AltPressed and opens the same card detail
-        // screen as left-click in the library. Clear the base press state and
-        // consume this release so right-click can be dedicated to Wishlist.
-        WishlistService.ClearCardPressState(holder);
-        holder.AcceptEvent();
-        return false;
+            // Right-click normally emits AltPressed and opens the same card
+            // detail screen as left-click in the library.
+            WishlistService.ClearCardPressState(holder);
+            holder.AcceptEvent();
+            return false;
+        }
+
+        if (ChoiceCompareService.TryPinGridCard(holder))
+        {
+            WishlistService.ClearCardPressState(holder);
+            holder.AcceptEvent();
+            return false;
+        }
+
+        return true;
     }
 }
 
