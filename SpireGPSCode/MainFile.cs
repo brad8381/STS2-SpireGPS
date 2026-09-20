@@ -15,7 +15,7 @@ namespace SpireGPS;
 [ModInitializer(nameof(Initialize))]
 public partial class MainFile : Node
 {
-    public const string ModId = "SpireGPS";
+    public const string ModId = "BantersTweaks";
     public const string DisplayName = "Banter's Tweak's";
 
     public static MegaCrit.Sts2.Core.Logging.Logger Logger { get; } =
