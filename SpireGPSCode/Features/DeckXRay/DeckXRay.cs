@@ -18,9 +18,6 @@ internal static class DeckXRayService
 
     internal static void Attach(NDeckViewScreen screen)
     {
-        if (!SpireGpsSettings.DeckXRayEnabled)
-            return;
-
         if (screen.GetNodeOrNull<DeckXRayPanel>("DeckXRayPanel") is not null)
             return;
 
