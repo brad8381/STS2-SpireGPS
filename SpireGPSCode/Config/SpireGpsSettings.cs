@@ -69,6 +69,7 @@ internal static class SpireGpsSettings
     internal static bool TradingEnabled { get; set; } = false;
     internal static bool TradingAllowCards { get; set; } = true;
     internal static bool TradingAllowRelics { get; set; } = true;
+    internal static bool TradingAllowGifting { get; set; } = false;
 
     internal static void Apply(string key, object value)
     {
@@ -136,6 +137,7 @@ internal static class SpireGpsSettings
             case "tradingEnabled": TradingEnabled = Convert.ToBoolean(value); break;
             case "tradingAllowCards": TradingAllowCards = Convert.ToBoolean(value); break;
             case "tradingAllowRelics": TradingAllowRelics = Convert.ToBoolean(value); break;
+            case "tradingAllowGifting": TradingAllowGifting = Convert.ToBoolean(value); break;
         }
     }
 }
