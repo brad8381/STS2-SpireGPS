@@ -26,9 +26,6 @@ internal static class MapLegendService
 
     internal static void Attach(NMapScreen screen)
     {
-        if (!SpireGpsSettings.MapLegendEnabled)
-            return;
-
         var legend = MapLegendField?.GetValue(screen) as Control;
         if (legend is null)
         {
@@ -104,10 +101,16 @@ internal static class MapLegendService
 
         // Vanilla animates the legend into its normal X position when the map
         // opens. Let that finish before applying a saved custom position.
-        if (_hasCustomPosition && !_dragging &&
+        if (SpireGpsSettings.MapLegendEnabled &&
+            _hasCustomPosition &&
+            !_dragging &&
             Time.GetTicksMsec() >= _openedAt + 450)
         {
             _legend.Position = ClampPosition(_savedPosition);
+        }
+        else if (!SpireGpsSettings.MapLegendEnabled && !_dragging)
+        {
+            _legend.Position = GetVanillaPosition();
         }
 
         _controls?.FollowLegend();
@@ -197,7 +200,20 @@ internal static class MapLegendService
         }
         else if (key == "mapLegendEnabled")
         {
-            ApplyVisibility();
+            _dragging = false;
+
+            if (_legend is not null)
+            {
+                _legend.Visible = SpireGpsSettings.MapLegendEnabled
+                    ? SpireGpsSettings.MapLegendVisible
+                    : true;
+
+                if (!SpireGpsSettings.MapLegendEnabled)
+                    _legend.Position = GetVanillaPosition();
+                else if (_hasCustomPosition)
+                    _legend.Position = ClampPosition(_savedPosition);
+            }
+
             _controls?.Refresh();
         }
     }
@@ -231,7 +247,7 @@ internal static class MapLegendService
         if (_legend is null || !GodotObject.IsInstanceValid(_legend))
             return;
 
-        _legend.Visible = SpireGpsSettings.MapLegendEnabled && SpireGpsSettings.MapLegendVisible;
+        _legend.Visible = !SpireGpsSettings.MapLegendEnabled || SpireGpsSettings.MapLegendVisible;
     }
 
     private static Vector2 GetVanillaPosition()
