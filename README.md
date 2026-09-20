@@ -86,6 +86,16 @@ Also implemented on the current development branch:
 - Synergy Hints for cards and relics
 - Multiplayer combat pings
 
+## Planned next modules
+
+- **Ghost Turn Planner** - queue cards and targets as a non-destructive plan, preview deterministic energy/damage/block, and optionally share the plan with co-op teammates. Random outcomes remain unknown rather than being guessed.
+- **Deck X-Ray** - collapsible deck statistics with clickable categories for card type, cost, keywords, upgrades, draw, energy, AoE and other factual deck properties.
+- **Trigger Inspector** - inspect a card/relic/power to see which owned items currently trigger it, and inspect a card to see which owned effects react to it.
+- **Turn Timeline** - show the deterministic order of end-turn/start-turn effects, automatic damage, enemy actions and projected known HP/block changes before ending the turn.
+- **Choice Compare** - pin 2-3 offered cards/relics/potions and compare their factual properties, upgrade changes, owned copies, wishlist state and existing build interactions side-by-side.
+- **Trading** - optional gameplay-altering co-op module, OFF by default. Initial design is a Rest Site trade action with a real opportunity cost, 1-for-1 trading first, and host-configurable rules.
+
+These are intentionally separated from the existing modules until implemented so ModConfig never shows controls that do nothing.
 
 ## Compatibility
 
