@@ -123,9 +123,15 @@ internal static class ModConfigBridge
 
             Header("Turn Guard"),
             Toggle("turnGuardEnabled", "Enable Turn Guard", true),
+            Toggle("turnGuardWarnPlayableCards", "Warn When Playable Cards Remain", true),
+            Toggle("turnGuardWarnEnergy", "Mention Remaining Energy With Playable Cards", true),
+            Toggle("turnGuardWarnLethal", "Warn About Potentially Lethal Incoming Damage", true),
+            Toggle("turnGuardAutoUnready", "Auto-unready If State Changes", true),
+            SliderRange("turnGuardConfirmSeconds", "Second-click Confirmation Window", 2.5f, 1f, 5f, 0.5f),
 
             Header("Potion Guard"),
             Toggle("potionGuardEnabled", "Enable Potion Guard", true),
+            SliderRange("potionGuardConfirmSeconds", "Discard Confirmation Window", 2.5f, 1f, 5f, 0.5f),
 
             Header("Relic Progress"),
             Toggle("relicTrackerEnabled", "Enable Relic Progress", true),
@@ -309,6 +315,16 @@ internal static class ModConfigBridge
         Load("treasureWeight", 1f);
         Load("turnGuardEnabled", true);
         Load("potionGuardEnabled", true);
+        Load("turnGuardEnabled", true);
+        Load("turnGuardWarnPlayableCards", true);
+        Load("turnGuardWarnEnergy", true);
+        Load("turnGuardWarnLethal", true);
+        Load("turnGuardAutoUnready", true);
+        Load("turnGuardConfirmSeconds", 2.5f);
+
+        Load("potionGuardEnabled", true);
+        Load("potionGuardConfirmSeconds", 2.5f);
+
         Load("relicTrackerEnabled", true);
         Load("relicTrackerShowProgressFraction", true);
         Load("relicTrackerShowReady", true);
