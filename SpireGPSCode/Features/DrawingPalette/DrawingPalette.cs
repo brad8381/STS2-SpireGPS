@@ -140,6 +140,12 @@ internal static class DrawingPaletteService
 
     internal static void ApplySettingsChanged(string key)
     {
+        if (key is "drawingPaletteEnabled" or "drawingPaletteExclusiveColors")
+        {
+            ApplyAllVisualStates();
+            Changed?.Invoke();
+        }
+
         if (_netService is null)
             return;
 
@@ -362,6 +368,13 @@ internal static class DrawingPaletteService
     {
         TrackedLines.RemoveAll(t => !GodotObject.IsInstanceValid(t.Line));
 
+        if (!IsActive)
+        {
+            foreach (var tracked in TrackedLines.Where(t => t.PlayerId == playerId))
+                tracked.Line.DefaultColor = tracked.OriginalColor;
+            return;
+        }
+
         bool recolor = GetEffectiveRecolor(playerId);
         Color current = Claims.TryGetValue(playerId, out int index) && IsValidIndex(index)
             ? Palette[index].Color
@@ -579,6 +592,11 @@ internal partial class DrawingPaletteControl : HBoxContainer
     public override void _ExitTree()
     {
         DrawingPaletteService.Changed -= Refresh;
+    }
+
+    public override void _Process(double delta)
+    {
+        Visible = DrawingPaletteService.IsActive;
     }
 
     private void Refresh()
