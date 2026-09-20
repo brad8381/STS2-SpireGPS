@@ -138,7 +138,9 @@ internal static class TradingService
         MainFile.RunState is { Players.Count: > 1 };
 
     internal static bool IsAvailable =>
-        IsMultiplayer && EffectiveEnabled;
+        IsMultiplayer &&
+        EffectiveEnabled &&
+        (EffectiveAllowCards || EffectiveAllowRelics || EffectiveAllowGold);
 
     internal static void InitializeForRun()
     {
