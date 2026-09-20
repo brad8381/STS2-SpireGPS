@@ -513,7 +513,6 @@ internal static class DrawingPaletteService
 public sealed class DrawingPaletteMessage : INetMessage, IPacketSerializable
 {
     public bool ShouldBroadcast => true;
-    public bool ShouldBuffer => false;
     public NetTransferMode Mode => NetTransferMode.Reliable;
     public LogLevel LogLevel => LogLevel.VeryDebug;
 
@@ -536,7 +535,6 @@ public sealed class DrawingPaletteMessage : INetMessage, IPacketSerializable
 public sealed class DrawingPalettePolicyMessage : INetMessage, IPacketSerializable
 {
     public bool ShouldBroadcast => true;
-    public bool ShouldBuffer => true;
     public NetTransferMode Mode => NetTransferMode.Reliable;
     public LogLevel LogLevel => LogLevel.VeryDebug;
 
