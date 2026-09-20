@@ -72,7 +72,8 @@ internal partial class RoutePanelLayer : CanvasLayer
         bool mapOpen = map is not null && map.IsOpen && map.IsVisibleInTree();
         bool shouldShow = mapOpen &&
                           SpireGpsSettings.RoutePlannerEnabled &&
-                          SpireGpsSettings.RoutePanelEnabled;
+                          SpireGpsSettings.RoutePanelEnabled &&
+                          MainFile.Routes.Count > 0;
 
         _panel.Visible = shouldShow;
 
