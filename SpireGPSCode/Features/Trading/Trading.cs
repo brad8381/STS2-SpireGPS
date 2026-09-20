@@ -578,8 +578,12 @@ internal static class TradingService
 
     private static void HandleExecute(TradeExecuteMessage message, ulong senderId)
     {
-        if (_netService is null || senderId == _netService.NetId)
+        if (_netService is null ||
+            senderId == _netService.NetId ||
+            senderId != message.PlayerB)
+        {
             return;
+        }
 
         if (ApplyTrade(message))
             SpireGpsToast.Show("Trading: synchronized co-op trade completed.");
@@ -813,16 +817,12 @@ internal static class TradingService
 
     private static bool IsSafeRelic(Player owner, RelicModel relic)
     {
-        if (relic.IsMelted ||
-            relic.IsUsedUp ||
-            relic.IsStackable ||
-            relic.HasUponPickupEffect ||
-            relic.SpawnsPets)
-        {
-            return false;
-        }
-
-        return !owner.Character.StartingRelics.Any(starting => starting.Id == relic.Id);
+        // Use the game's own trading safety rule first. Keep stackable relics
+        // excluded for now because this module transfers one concrete relic
+        // instance rather than a partial stack.
+        return relic.IsTradable &&
+               !relic.IsStackable &&
+               !owner.Character.StartingRelics.Any(starting => starting.Id == relic.Id);
     }
 
     private static string FormatCard(CardModel card)
