@@ -172,6 +172,7 @@ internal static class ModConfigBridge
             Toggle("tradingEnabled", "Enable Trading (Host)", false),
             Toggle("tradingAllowCards", "Allow Card Trades (Host)", true),
             Toggle("tradingAllowRelics", "Allow Safe Relic Trades (Host)", true),
+            Toggle("tradingAllowGold", "Allow Gold Trades (Host)", true),
             Toggle("tradingAllowGifting", "Allow Gifting (Host)", false)
         };
 
@@ -335,6 +336,7 @@ internal static class ModConfigBridge
         Load("tradingEnabled", false);
         Load("tradingAllowCards", true);
         Load("tradingAllowRelics", true);
+        Load("tradingAllowGold", true);
         Load("tradingAllowGifting", false);
 
         MainFile.RefreshRoutes();
