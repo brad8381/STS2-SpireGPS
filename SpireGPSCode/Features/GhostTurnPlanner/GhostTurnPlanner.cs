@@ -505,6 +505,16 @@ internal partial class GhostTurnPlannerPanel : PanelContainer
         top.AddThemeConstantOverride("separation", 6);
         outer.AddChild(top);
 
+        var title = new Label
+        {
+            Text = "Ghost Planner",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        title.AddThemeFontSizeOverride("font_size", 15);
+        top.AddChild(title);
+        PanelDrag.Attach(title, this);
+
         _toggle = new Button
         {
             Text = "Plan Turn",
