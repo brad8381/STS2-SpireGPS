@@ -65,7 +65,7 @@ internal static class WishlistService
     internal static void RefreshCardHolder(NGridCardHolder holder)
     {
         var legacy = holder.GetNodeOrNull<Label>(StarNodeName);
-        Control owner = holder.CardNode ?? holder;
+        Control owner = holder.CardNode is Control cardNode ? cardNode : holder;
 
         if (!ReferenceEquals(owner, holder) && legacy is not null)
             legacy.QueueFree();
