@@ -140,7 +140,6 @@ internal static class ModConfigBridge
 
             Header("Drawing Palette"),
             Toggle("drawingPaletteEnabled", "Enable Drawing Palette", true),
-            Toggle("drawingPaletteExclusiveColors", "Exclusive Multiplayer Colors", true),
             Toggle("drawingPaletteRecolorExisting", "Recolor Existing Drawings When Color Changes", false),
             Toggle("drawingPaletteHostForceRecolor", "Host Forces Recolor Mode", false),
 
@@ -328,7 +327,6 @@ internal static class ModConfigBridge
         Load("relicTrackerShowReady", true);
 
         Load("drawingPaletteEnabled", true);
-        Load("drawingPaletteExclusiveColors", true);
         Load("drawingPaletteRecolorExisting", false);
         Load("drawingPaletteHostForceRecolor", false);
 
