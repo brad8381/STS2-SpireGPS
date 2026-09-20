@@ -1289,6 +1289,24 @@ internal static class TradingRestSiteRoomPatch
     }
 }
 
+
+
+[HarmonyPatch(typeof(RestSiteOption), "get_Icon")]
+internal static class TradingRestSiteIconPatch
+{
+    private static bool Prefix(RestSiteOption __instance, ref Texture2D __result)
+    {
+        if (__instance is not TradeRestSiteOption trade)
+            return true;
+
+        // Reuse the vanilla Rest icon so the module stays DLL-only while still
+        // giving remote-player thought bubbles and other generic Rest Site UI
+        // a valid texture.
+        __result = new HealRestSiteOption(trade.OwnerPlayer).Icon;
+        return false;
+    }
+}
+
 [HarmonyPatch(typeof(NRestSiteButton), "Reload")]
 internal static class TradingRestSiteReloadPatch
 {
