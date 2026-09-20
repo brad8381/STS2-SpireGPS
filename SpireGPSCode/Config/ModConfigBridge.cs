@@ -211,7 +211,7 @@ internal static class ModConfigBridge
         Set(e, "Min", -10f);
         Set(e, "Max", 10f);
         Set(e, "Step", 1f);
-        Set(e, "Format", step < 1f ? "F1" : "F0");
+        Set(e, "Format", "F0");
         Set(e, "Description", "Positive = prefer this room type. Negative = avoid it.");
         Set(e, "OnChanged", new Action<object>(v => ApplyAndRefresh(key, v)));
     });
@@ -225,7 +225,7 @@ internal static class ModConfigBridge
         Set(e, "Min", min);
         Set(e, "Max", max);
         Set(e, "Step", step);
-        Set(e, "Format", "F0");
+        Set(e, "Format", step < 1f ? "F1" : "F0");
         Set(e, "OnChanged", new Action<object>(v => ApplyAndRefresh(key, v)));
     });
 
