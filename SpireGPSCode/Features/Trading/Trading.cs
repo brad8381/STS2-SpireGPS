@@ -1,14 +1,20 @@
+using System.Reflection;
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.addons.mega_text;
+using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Entities.RestSite;
+using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Multiplayer.Transport;
+using MegaCrit.Sts2.Core.Nodes.RestSite;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Runs;
@@ -17,33 +23,83 @@ using SpireGPS.UI;
 
 namespace SpireGPS.Features.Trading;
 
-internal enum TradeItemKind
+internal enum TradeLegKind
 {
-    Card = 0,
-    Relic = 1
+    None = 0,
+    Card = 1,
+    Relic = 2,
+    Gold = 3
 }
 
-internal readonly record struct TradeItemChoice(int SourceIndex, string Label, string ExpectedId);
+internal readonly record struct TradeItemChoice(
+    int SourceIndex,
+    string Label,
+    string ExpectedId);
+
+internal readonly record struct TradeLegSpec(
+    TradeLegKind Kind,
+    int SourceIndex,
+    string ExpectedId,
+    int GoldAmount,
+    string Label);
+
+internal sealed class ResolvedTradeLeg
+{
+    internal TradeLegKind Kind { get; init; }
+    internal CardModel? Card { get; init; }
+    internal RelicModel? Relic { get; init; }
+    internal int GoldAmount { get; init; }
+    internal string Label { get; init; } = string.Empty;
+}
+
+internal sealed class TradeRestSiteOption(Player owner) : RestSiteOption(owner)
+{
+    internal Player OwnerPlayer => owner;
+
+    public override string OptionId => "SPIREGPS_TRADE";
+
+    public override IEnumerable<string> AssetPaths => new HealRestSiteOption(owner).AssetPaths;
+
+    public override async Task<bool> OnSelect()
+    {
+        if (!TradingService.CanChooseTrade(owner))
+            return false;
+
+        decimal heal = Math.Ceiling(owner.Creature.MaxHp * 0.15m);
+        if (heal > 0)
+            await CreatureCmd.Heal(owner.Creature, heal);
+
+        TradingService.MarkTradeReady(owner.NetId);
+        return true;
+    }
+
+    public override Task DoLocalPostSelectVfx(CancellationToken ct = default)
+    {
+        if (LocalContext.IsMe(owner))
+            TradingService.OpenLocalTradePanel();
+
+        return Task.CompletedTask;
+    }
+}
 
 internal static class TradingService
 {
-    private const string TradeButtonName = "TradingButton";
-    private const string TradePanelName = "TradingPanel";
+    private const string TradePanelName = "SpireGpsTradingPanel";
 
     private static INetGameService? _netService;
     private static bool _handlersRegistered;
     private static NRestSiteRoom? _room;
 
+    private static readonly HashSet<ulong> ReadyPlayers = new();
+    private static readonly HashSet<ulong> CompletedPlayers = new();
+
     private static bool _hostPolicyReceived;
     private static bool _hostTradingEnabled;
     private static bool _hostAllowCards = true;
     private static bool _hostAllowRelics = true;
+    private static bool _hostAllowGifting;
 
     internal static event Action? Changed;
-
-    internal static bool IsAvailable =>
-        MainFile.RunState is { Players.Count: > 1 } &&
-        EffectiveEnabled;
 
     private static bool EffectiveEnabled =>
         _netService?.Type == NetGameType.Host
@@ -60,15 +116,36 @@ internal static class TradingService
             ? SpireGpsSettings.TradingAllowRelics
             : _hostPolicyReceived && _hostAllowRelics;
 
-    internal static void Attach(NRestSiteRoom room)
+    internal static bool AllowGifting =>
+        _netService?.Type == NetGameType.Host
+            ? SpireGpsSettings.TradingAllowGifting
+            : _hostPolicyReceived && _hostAllowGifting;
+
+    internal static bool IsMultiplayer =>
+        MainFile.RunState is { Players.Count: > 1 };
+
+    internal static bool IsAvailable =>
+        IsMultiplayer && EffectiveEnabled;
+
+    internal static void InitializeForRun()
+    {
+        EnsureNetwork();
+
+        if (_netService?.Type == NetGameType.Host)
+            BroadcastPolicy();
+    }
+
+    internal static void BeginRestSite(NRestSiteRoom room)
     {
         _room = room;
+        ReadyPlayers.Clear();
+        CompletedPlayers.Clear();
         EnsureNetwork();
 
         if (_netService?.Type == NetGameType.Host)
             BroadcastPolicy();
 
-        RefreshRestSiteButton();
+        Changed?.Invoke();
     }
 
     internal static void ApplySettingsChanged()
@@ -76,48 +153,47 @@ internal static class TradingService
         EnsureNetwork();
 
         if (_netService?.Type == NetGameType.Host)
-        {
             BroadcastPolicy();
-            RefreshRestSiteButton();
-        }
+
+        Changed?.Invoke();
     }
 
-    private static void RefreshRestSiteButton()
+    internal static bool CanChooseTrade(Player player)
+    {
+        return IsAvailable &&
+               !CompletedPlayers.Contains(player.NetId);
+    }
+
+    internal static void MarkTradeReady(ulong playerId)
+    {
+        ReadyPlayers.Add(playerId);
+        Changed?.Invoke();
+    }
+
+    internal static bool IsReady(ulong playerId)
+        => ReadyPlayers.Contains(playerId) && !CompletedPlayers.Contains(playerId);
+
+    internal static void OpenLocalTradePanel()
     {
         if (_room is null || !GodotObject.IsInstanceValid(_room))
             return;
 
-        var existing = _room.GetNodeOrNull<Button>(TradeButtonName);
+        var local = GetLocalPlayer();
+        if (local is null || !IsReady(local.NetId))
+            return;
 
-        if (!IsAvailable)
+        var existing = _room.GetNodeOrNull<TradingPanel>(TradePanelName);
+        if (existing is not null)
         {
-            existing?.QueueFree();
-            _room.GetNodeOrNull<TradingPanel>(TradePanelName)?.QueueFree();
+            existing.Visible = true;
+            existing.RefreshAll();
             return;
         }
 
-        if (existing is not null)
-            return;
-
-        var button = new Button
+        _room.AddChild(new TradingPanel
         {
-            Name = TradeButtonName,
-            Text = "Trade",
-            TooltipText = "Open 1-for-1 co-op trading. Trading is only available at Rest Sites.",
-            FocusMode = Control.FocusModeEnum.None,
-            AnchorLeft = 1f,
-            AnchorRight = 1f,
-            AnchorTop = 0f,
-            AnchorBottom = 0f,
-            OffsetLeft = -178f,
-            OffsetRight = -28f,
-            OffsetTop = 82f,
-            OffsetBottom = 126f,
-            ZIndex = 120
-        };
-
-        button.Pressed += () => TogglePanel(_room);
-        _room.AddChild(button);
+            Name = TradePanelName
+        });
     }
 
     internal static IReadOnlyList<Player> GetTradeTargets()
@@ -125,9 +201,14 @@ internal static class TradingService
         if (MainFile.RunState is null)
             return Array.Empty<Player>();
 
-        ulong localId = _netService?.NetId ?? LocalContext.NetId ?? 0;
+        var local = GetLocalPlayer();
+        if (local is null)
+            return Array.Empty<Player>();
+
         return MainFile.RunState.Players
-            .Where(player => player.NetId != localId)
+            .Where(player =>
+                player.NetId != local.NetId &&
+                IsReady(player.NetId))
             .ToArray();
     }
 
@@ -139,9 +220,9 @@ internal static class TradingService
         return LocalContext.GetMe(MainFile.RunState);
     }
 
-    internal static IReadOnlyList<TradeItemChoice> GetChoices(Player player, TradeItemKind kind)
+    internal static IReadOnlyList<TradeItemChoice> GetChoices(Player player, TradeLegKind kind)
     {
-        if (kind == TradeItemKind.Card)
+        if (kind == TradeLegKind.Card)
         {
             if (!EffectiveAllowCards)
                 return Array.Empty<TradeItemChoice>();
@@ -156,17 +237,22 @@ internal static class TradingService
                 .ToArray();
         }
 
-        if (!EffectiveAllowRelics)
-            return Array.Empty<TradeItemChoice>();
+        if (kind == TradeLegKind.Relic)
+        {
+            if (!EffectiveAllowRelics)
+                return Array.Empty<TradeItemChoice>();
 
-        return player.Relics
-            .Select((relic, index) => (relic, index))
-            .Where(pair => IsSafeRelic(player, pair.relic))
-            .Select(pair => new TradeItemChoice(
-                pair.index,
-                pair.relic.Title.GetFormattedText(),
-                pair.relic.Id.ToString()))
-            .ToArray();
+            return player.Relics
+                .Select((relic, index) => (relic, index))
+                .Where(pair => IsSafeRelic(player, pair.relic))
+                .Select(pair => new TradeItemChoice(
+                    pair.index,
+                    pair.relic.Title.GetFormattedText(),
+                    pair.relic.Id.ToString()))
+                .ToArray();
+        }
+
+        return Array.Empty<TradeItemChoice>();
     }
 
     internal static string GetPlayerName(Player player)
@@ -183,42 +269,52 @@ internal static class TradingService
 
     internal static void Propose(
         Player target,
-        TradeItemKind kind,
-        TradeItemChoice localItem,
-        TradeItemChoice remoteItem)
+        TradeLegSpec localLeg,
+        TradeLegSpec remoteLeg)
     {
         EnsureNetwork();
 
-        if (_netService is null || !IsAvailable)
+        var local = GetLocalPlayer();
+        if (_netService is null ||
+            local is null ||
+            !IsAvailable ||
+            !IsReady(local.NetId) ||
+            !IsReady(target.NetId))
+        {
+            SpireGpsToast.Show("Trading: both players must choose Trade at this Rest Site first.");
             return;
+        }
+
+        if (!AllowGifting &&
+            (localLeg.Kind == TradeLegKind.None || remoteLeg.Kind == TradeLegKind.None))
+        {
+            SpireGpsToast.Show("Trading: gifting is disabled by the host.");
+            return;
+        }
+
+        if (localLeg.Kind == TradeLegKind.None && remoteLeg.Kind == TradeLegKind.None)
+        {
+            SpireGpsToast.Show("Trading: choose something to exchange.");
+            return;
+        }
 
         _netService.SendMessage(new TradeProposalMessage
         {
             TargetNetId = target.NetId,
-            Kind = (int)kind,
-            ProposerIndex = localItem.SourceIndex,
-            TargetIndex = remoteItem.SourceIndex,
-            ProposerExpectedId = localItem.ExpectedId,
-            TargetExpectedId = remoteItem.ExpectedId
+
+            ProposerKind = (int)localLeg.Kind,
+            ProposerIndex = localLeg.SourceIndex,
+            ProposerExpectedId = localLeg.ExpectedId,
+            ProposerGold = localLeg.GoldAmount,
+
+            TargetKind = (int)remoteLeg.Kind,
+            TargetIndex = remoteLeg.SourceIndex,
+            TargetExpectedId = remoteLeg.ExpectedId,
+            TargetGold = remoteLeg.GoldAmount
         });
 
         SpireGpsToast.Show(
             $"Trading: proposal sent to {GetPlayerName(target)}.");
-    }
-
-    private static void TogglePanel(NRestSiteRoom room)
-    {
-        var existing = room.GetNodeOrNull<TradingPanel>(TradePanelName);
-        if (existing is not null)
-        {
-            existing.QueueFree();
-            return;
-        }
-
-        room.AddChild(new TradingPanel
-        {
-            Name = TradePanelName
-        });
     }
 
     private static void EnsureNetwork()
@@ -253,6 +349,7 @@ internal static class TradingService
             _hostTradingEnabled = SpireGpsSettings.TradingEnabled;
             _hostAllowCards = SpireGpsSettings.TradingAllowCards;
             _hostAllowRelics = SpireGpsSettings.TradingAllowRelics;
+            _hostAllowGifting = SpireGpsSettings.TradingAllowGifting;
         }
     }
 
@@ -265,12 +362,14 @@ internal static class TradingService
         _hostTradingEnabled = SpireGpsSettings.TradingEnabled;
         _hostAllowCards = SpireGpsSettings.TradingAllowCards;
         _hostAllowRelics = SpireGpsSettings.TradingAllowRelics;
+        _hostAllowGifting = SpireGpsSettings.TradingAllowGifting;
 
         _netService.SendMessage(new TradePolicyMessage
         {
             Enabled = _hostTradingEnabled,
             AllowCards = _hostAllowCards,
-            AllowRelics = _hostAllowRelics
+            AllowRelics = _hostAllowRelics,
+            AllowGifting = _hostAllowGifting
         });
     }
 
@@ -286,8 +385,8 @@ internal static class TradingService
         _hostTradingEnabled = message.Enabled;
         _hostAllowCards = message.AllowCards;
         _hostAllowRelics = message.AllowRelics;
+        _hostAllowGifting = message.AllowGifting;
 
-        RefreshRestSiteButton();
         Changed?.Invoke();
     }
 
@@ -296,7 +395,9 @@ internal static class TradingService
         if (!IsAvailable ||
             _netService is null ||
             message.TargetNetId != _netService.NetId ||
-            senderId == _netService.NetId)
+            senderId == _netService.NetId ||
+            !IsReady(senderId) ||
+            !IsReady(_netService.NetId))
         {
             return;
         }
@@ -306,12 +407,28 @@ internal static class TradingService
         if (proposer is null || target is null)
             return;
 
-        var kind = (TradeItemKind)message.Kind;
-
-        if (!TryResolveItem(proposer, kind, message.ProposerIndex, message.ProposerExpectedId, out string proposerItem) ||
-            !TryResolveItem(target, kind, message.TargetIndex, message.TargetExpectedId, out string targetItem))
+        if (!TryResolveLeg(
+                proposer,
+                (TradeLegKind)message.ProposerKind,
+                message.ProposerIndex,
+                message.ProposerExpectedId,
+                message.ProposerGold,
+                out var proposerLeg) ||
+            !TryResolveLeg(
+                target,
+                (TradeLegKind)message.TargetKind,
+                message.TargetIndex,
+                message.TargetExpectedId,
+                message.TargetGold,
+                out var targetLeg))
         {
             SpireGpsToast.Show("Trading: proposal expired because an item changed.");
+            return;
+        }
+
+        if (!AllowGifting &&
+            (proposerLeg.Kind == TradeLegKind.None || targetLeg.Kind == TradeLegKind.None))
+        {
             return;
         }
 
@@ -322,9 +439,9 @@ internal static class TradingService
         {
             Title = "Trading",
             DialogText =
-                $"{GetPlayerName(proposer)} proposes a 1-for-1 trade:\n\n" +
-                $"You give: {targetItem}\n" +
-                $"You receive: {proposerItem}",
+                $"{GetPlayerName(proposer)} proposes:\n\n" +
+                $"You give: {targetLeg.Label}\n" +
+                $"You receive: {proposerLeg.Label}",
             OkButtonText = "Accept",
             CancelButtonText = "Decline",
             Exclusive = true
@@ -336,11 +453,16 @@ internal static class TradingService
             {
                 PlayerA = proposer.NetId,
                 PlayerB = target.NetId,
-                Kind = message.Kind,
+
+                PlayerAKind = message.ProposerKind,
                 PlayerAIndex = message.ProposerIndex,
-                PlayerBIndex = message.TargetIndex,
                 PlayerAExpectedId = message.ProposerExpectedId,
-                PlayerBExpectedId = message.TargetExpectedId
+                PlayerAGold = message.ProposerGold,
+
+                PlayerBKind = message.TargetKind,
+                PlayerBIndex = message.TargetIndex,
+                PlayerBExpectedId = message.TargetExpectedId,
+                PlayerBGold = message.TargetGold
             };
 
             if (ApplyTrade(execute))
@@ -374,38 +496,135 @@ internal static class TradingService
     {
         var playerA = FindPlayer(message.PlayerA);
         var playerB = FindPlayer(message.PlayerB);
-        if (playerA is null || playerB is null || playerA == playerB)
-            return false;
 
-        var kind = (TradeItemKind)message.Kind;
+        if (playerA is null ||
+            playerB is null ||
+            playerA == playerB ||
+            !IsReady(playerA.NetId) ||
+            !IsReady(playerB.NetId))
+        {
+            return false;
+        }
 
         try
         {
-            bool applied = kind switch
+            if (!TryResolveLeg(
+                    playerA,
+                    (TradeLegKind)message.PlayerAKind,
+                    message.PlayerAIndex,
+                    message.PlayerAExpectedId,
+                    message.PlayerAGold,
+                    out var aLeg) ||
+                !TryResolveLeg(
+                    playerB,
+                    (TradeLegKind)message.PlayerBKind,
+                    message.PlayerBIndex,
+                    message.PlayerBExpectedId,
+                    message.PlayerBGold,
+                    out var bLeg))
             {
-                TradeItemKind.Card => ApplyCardTrade(
-                    playerA,
-                    playerB,
-                    message.PlayerAIndex,
-                    message.PlayerBIndex,
-                    message.PlayerAExpectedId,
-                    message.PlayerBExpectedId),
+                return false;
+            }
 
-                TradeItemKind.Relic => ApplyRelicTrade(
-                    playerA,
-                    playerB,
-                    message.PlayerAIndex,
-                    message.PlayerBIndex,
-                    message.PlayerAExpectedId,
-                    message.PlayerBExpectedId),
+            if (!AllowGifting &&
+                (aLeg.Kind == TradeLegKind.None || bLeg.Kind == TradeLegKind.None))
+            {
+                return false;
+            }
 
-                _ => false
-            };
+            if (aLeg.Kind == TradeLegKind.None && bLeg.Kind == TradeLegKind.None)
+                return false;
 
-            if (applied)
-                Changed?.Invoke();
+            CardModel? aCard = aLeg.Card;
+            CardModel? bCard = bLeg.Card;
 
-            return applied;
+            var aRelicSave = aLeg.Relic?.ToSerializable();
+            var bRelicSave = bLeg.Relic?.ToSerializable();
+
+            int aCardIndex = aCard is null ? -1 : playerA.Deck.Cards.IndexOf(aCard);
+            int bCardIndex = bCard is null ? -1 : playerB.Deck.Cards.IndexOf(bCard);
+            int aRelicIndex = aLeg.Relic is null ? -1 : playerA.Relics.IndexOf(aLeg.Relic);
+            int bRelicIndex = bLeg.Relic is null ? -1 : playerB.Relics.IndexOf(bLeg.Relic);
+
+            if (aCard is not null)
+                playerA.Deck.RemoveInternal(aCard);
+
+            if (bCard is not null)
+                playerB.Deck.RemoveInternal(bCard);
+
+            if (aLeg.Relic is not null)
+                playerA.RemoveRelicInternal(aLeg.Relic);
+
+            if (bLeg.Relic is not null)
+                playerB.RemoveRelicInternal(bLeg.Relic);
+
+            if (aCard is not null)
+            {
+                aCard.Owner = null!;
+                aCard.Owner = playerB;
+                playerB.Deck.AddInternal(
+                    aCard,
+                    bCardIndex >= 0
+                        ? Math.Min(bCardIndex, playerB.Deck.Cards.Count)
+                        : -1);
+            }
+
+            if (bCard is not null)
+            {
+                bCard.Owner = null!;
+                bCard.Owner = playerA;
+                playerA.Deck.AddInternal(
+                    bCard,
+                    aCardIndex >= 0
+                        ? Math.Min(aCardIndex, playerA.Deck.Cards.Count)
+                        : -1);
+            }
+
+            if (aRelicSave is not null)
+            {
+                var relic = RelicModel.FromSerializable(aRelicSave);
+                playerB.AddRelicInternal(
+                    relic,
+                    bRelicIndex >= 0
+                        ? Math.Min(bRelicIndex, playerB.Relics.Count)
+                        : -1);
+            }
+
+            if (bRelicSave is not null)
+            {
+                var relic = RelicModel.FromSerializable(bRelicSave);
+                playerA.AddRelicInternal(
+                    relic,
+                    aRelicIndex >= 0
+                        ? Math.Min(aRelicIndex, playerA.Relics.Count)
+                        : -1);
+            }
+
+            if (aLeg.GoldAmount > 0 || bLeg.GoldAmount > 0)
+            {
+                playerA.Gold = playerA.Gold - aLeg.GoldAmount + bLeg.GoldAmount;
+                playerB.Gold = playerB.Gold - bLeg.GoldAmount + aLeg.GoldAmount;
+            }
+
+            CompletedPlayers.Add(playerA.NetId);
+            CompletedPlayers.Add(playerB.NetId);
+            ReadyPlayers.Remove(playerA.NetId);
+            ReadyPlayers.Remove(playerB.NetId);
+
+            MainFile.Logger.Info(
+                $"Trading completed: {playerA.NetId} gave {aLeg.Label}; " +
+                $"{playerB.NetId} gave {bLeg.Label}.");
+
+            Changed?.Invoke();
+
+            if (_room is not null && GodotObject.IsInstanceValid(_room))
+            {
+                var local = GetLocalPlayer();
+                if (local is not null && CompletedPlayers.Contains(local.NetId))
+                    _room.GetNodeOrNull<TradingPanel>(TradePanelName)?.QueueFree();
+            }
+
+            return true;
         }
         catch (Exception ex)
         {
@@ -414,88 +633,84 @@ internal static class TradingService
         }
     }
 
-    private static bool ApplyCardTrade(
-        Player a,
-        Player b,
-        int aIndex,
-        int bIndex,
-        string aExpected,
-        string bExpected)
+    private static bool TryResolveLeg(
+        Player owner,
+        TradeLegKind kind,
+        int sourceIndex,
+        string expectedId,
+        int goldAmount,
+        out ResolvedTradeLeg leg)
     {
-        if (aIndex < 0 || aIndex >= a.Deck.Cards.Count ||
-            bIndex < 0 || bIndex >= b.Deck.Cards.Count)
+        leg = new ResolvedTradeLeg
         {
-            return false;
-        }
+            Kind = kind,
+            Label = "Nothing"
+        };
 
-        var aCard = a.Deck.Cards[aIndex];
-        var bCard = b.Deck.Cards[bIndex];
-
-        if (aCard.Id.ToString() != aExpected ||
-            bCard.Id.ToString() != bExpected ||
-            !IsSafeCard(aCard) ||
-            !IsSafeCard(bCard))
+        switch (kind)
         {
-            return false;
+            case TradeLegKind.None:
+                return AllowGifting;
+
+            case TradeLegKind.Card:
+            {
+                if (!EffectiveAllowCards ||
+                    sourceIndex < 0 ||
+                    sourceIndex >= owner.Deck.Cards.Count)
+                {
+                    return false;
+                }
+
+                var card = owner.Deck.Cards[sourceIndex];
+                if (card.Id.ToString() != expectedId || !IsSafeCard(card))
+                    return false;
+
+                leg = new ResolvedTradeLeg
+                {
+                    Kind = kind,
+                    Card = card,
+                    Label = FormatCard(card)
+                };
+                return true;
+            }
+
+            case TradeLegKind.Relic:
+            {
+                if (!EffectiveAllowRelics ||
+                    sourceIndex < 0 ||
+                    sourceIndex >= owner.Relics.Count)
+                {
+                    return false;
+                }
+
+                var relic = owner.Relics[sourceIndex];
+                if (relic.Id.ToString() != expectedId || !IsSafeRelic(owner, relic))
+                    return false;
+
+                leg = new ResolvedTradeLeg
+                {
+                    Kind = kind,
+                    Relic = relic,
+                    Label = relic.Title.GetFormattedText()
+                };
+                return true;
+            }
+
+            case TradeLegKind.Gold:
+                if (goldAmount <= 0 || goldAmount > owner.Gold)
+                    return false;
+
+                leg = new ResolvedTradeLeg
+                {
+                    Kind = kind,
+                    GoldAmount = goldAmount,
+                    Label = $"{goldAmount} Gold"
+                };
+                return true;
+
+            default:
+                return false;
         }
-
-        a.Deck.RemoveInternal(aCard);
-        b.Deck.RemoveInternal(bCard);
-
-        aCard.Owner = null!;
-        bCard.Owner = null!;
-
-        aCard.Owner = b;
-        bCard.Owner = a;
-
-        a.Deck.AddInternal(bCard, Math.Min(aIndex, a.Deck.Cards.Count));
-        b.Deck.AddInternal(aCard, Math.Min(bIndex, b.Deck.Cards.Count));
-
-        MainFile.Logger.Info(
-            $"Trading: swapped cards {aExpected} ({a.NetId}) and {bExpected} ({b.NetId}).");
-        return true;
-    }
-
-    private static bool ApplyRelicTrade(
-        Player a,
-        Player b,
-        int aIndex,
-        int bIndex,
-        string aExpected,
-        string bExpected)
-    {
-        if (aIndex < 0 || aIndex >= a.Relics.Count ||
-            bIndex < 0 || bIndex >= b.Relics.Count)
-        {
-            return false;
-        }
-
-        var aRelic = a.Relics[aIndex];
-        var bRelic = b.Relics[bIndex];
-
-        if (aRelic.Id.ToString() != aExpected ||
-            bRelic.Id.ToString() != bExpected ||
-            !IsSafeRelic(a, aRelic) ||
-            !IsSafeRelic(b, bRelic))
-        {
-            return false;
-        }
-
-        var aSave = aRelic.ToSerializable();
-        var bSave = bRelic.ToSerializable();
-
-        a.RemoveRelicInternal(aRelic);
-        b.RemoveRelicInternal(bRelic);
-
-        var aForB = RelicModel.FromSerializable(aSave);
-        var bForA = RelicModel.FromSerializable(bSave);
-
-        a.AddRelicInternal(bForA, Math.Min(aIndex, a.Relics.Count));
-        b.AddRelicInternal(aForB, Math.Min(bIndex, b.Relics.Count));
-
-        MainFile.Logger.Info(
-            $"Trading: swapped relics {aExpected} ({a.NetId}) and {bExpected} ({b.NetId}).");
-        return true;
     }
 
     private static bool IsSafeCard(CardModel card)
@@ -522,41 +737,7 @@ internal static class TradingService
 
     private static Player? FindPlayer(ulong netId)
         => MainFile.RunState?.Players.FirstOrDefault(player => player.NetId == netId);
-
-    private static bool TryResolveItem(
-        Player player,
-        TradeItemKind kind,
-        int index,
-        string expectedId,
-        out string label)
-    {
-        label = string.Empty;
-
-        if (kind == TradeItemKind.Card)
-        {
-            if (index < 0 || index >= player.Deck.Cards.Count)
-                return false;
-
-            var card = player.Deck.Cards[index];
-            if (card.Id.ToString() != expectedId || !IsSafeCard(card))
-                return false;
-
-            label = FormatCard(card);
-            return true;
-        }
-
-        if (index < 0 || index >= player.Relics.Count)
-            return false;
-
-        var relic = player.Relics[index];
-        if (relic.Id.ToString() != expectedId || !IsSafeRelic(player, relic))
-            return false;
-
-        label = relic.Title.GetFormattedText();
-        return true;
-    }
 }
-
 
 public sealed class TradePolicyMessage : INetMessage, IPacketSerializable
 {
@@ -568,12 +749,14 @@ public sealed class TradePolicyMessage : INetMessage, IPacketSerializable
     public bool Enabled;
     public bool AllowCards;
     public bool AllowRelics;
+    public bool AllowGifting;
 
     public void Serialize(PacketWriter writer)
     {
         writer.WriteBool(Enabled);
         writer.WriteBool(AllowCards);
         writer.WriteBool(AllowRelics);
+        writer.WriteBool(AllowGifting);
     }
 
     public void Deserialize(PacketReader reader)
@@ -581,6 +764,7 @@ public sealed class TradePolicyMessage : INetMessage, IPacketSerializable
         Enabled = reader.ReadBool();
         AllowCards = reader.ReadBool();
         AllowRelics = reader.ReadBool();
+        AllowGifting = reader.ReadBool();
     }
 }
 
@@ -592,30 +776,45 @@ public sealed class TradeProposalMessage : INetMessage, IPacketSerializable
     public LogLevel LogLevel => LogLevel.VeryDebug;
 
     public ulong TargetNetId;
-    public int Kind;
+
+    public int ProposerKind;
     public int ProposerIndex;
-    public int TargetIndex;
     public string ProposerExpectedId = string.Empty;
+    public int ProposerGold;
+
+    public int TargetKind;
+    public int TargetIndex;
     public string TargetExpectedId = string.Empty;
+    public int TargetGold;
 
     public void Serialize(PacketWriter writer)
     {
         writer.WriteULong(TargetNetId);
-        writer.WriteUInt((uint)Kind, 2);
+
+        writer.WriteUInt((uint)ProposerKind, 3);
         writer.WriteInt(ProposerIndex);
-        writer.WriteInt(TargetIndex);
         writer.WriteString(ProposerExpectedId);
+        writer.WriteInt(ProposerGold);
+
+        writer.WriteUInt((uint)TargetKind, 3);
+        writer.WriteInt(TargetIndex);
         writer.WriteString(TargetExpectedId);
+        writer.WriteInt(TargetGold);
     }
 
     public void Deserialize(PacketReader reader)
     {
         TargetNetId = reader.ReadULong();
-        Kind = (int)reader.ReadUInt(2);
+
+        ProposerKind = (int)reader.ReadUInt(3);
         ProposerIndex = reader.ReadInt();
-        TargetIndex = reader.ReadInt();
         ProposerExpectedId = reader.ReadString();
+        ProposerGold = reader.ReadInt();
+
+        TargetKind = (int)reader.ReadUInt(3);
+        TargetIndex = reader.ReadInt();
         TargetExpectedId = reader.ReadString();
+        TargetGold = reader.ReadInt();
     }
 }
 
@@ -628,41 +827,62 @@ public sealed class TradeExecuteMessage : INetMessage, IPacketSerializable
 
     public ulong PlayerA;
     public ulong PlayerB;
-    public int Kind;
+
+    public int PlayerAKind;
     public int PlayerAIndex;
-    public int PlayerBIndex;
     public string PlayerAExpectedId = string.Empty;
+    public int PlayerAGold;
+
+    public int PlayerBKind;
+    public int PlayerBIndex;
     public string PlayerBExpectedId = string.Empty;
+    public int PlayerBGold;
 
     public void Serialize(PacketWriter writer)
     {
         writer.WriteULong(PlayerA);
         writer.WriteULong(PlayerB);
-        writer.WriteUInt((uint)Kind, 2);
+
+        writer.WriteUInt((uint)PlayerAKind, 3);
         writer.WriteInt(PlayerAIndex);
-        writer.WriteInt(PlayerBIndex);
         writer.WriteString(PlayerAExpectedId);
+        writer.WriteInt(PlayerAGold);
+
+        writer.WriteUInt((uint)PlayerBKind, 3);
+        writer.WriteInt(PlayerBIndex);
         writer.WriteString(PlayerBExpectedId);
+        writer.WriteInt(PlayerBGold);
     }
 
     public void Deserialize(PacketReader reader)
     {
         PlayerA = reader.ReadULong();
         PlayerB = reader.ReadULong();
-        Kind = (int)reader.ReadUInt(2);
+
+        PlayerAKind = (int)reader.ReadUInt(3);
         PlayerAIndex = reader.ReadInt();
-        PlayerBIndex = reader.ReadInt();
         PlayerAExpectedId = reader.ReadString();
+        PlayerAGold = reader.ReadInt();
+
+        PlayerBKind = (int)reader.ReadUInt(3);
+        PlayerBIndex = reader.ReadInt();
         PlayerBExpectedId = reader.ReadString();
+        PlayerBGold = reader.ReadInt();
     }
 }
 
 internal partial class TradingPanel : PanelContainer
 {
     private OptionButton _player = null!;
-    private OptionButton _kind = null!;
-    private OptionButton _mine = null!;
-    private OptionButton _theirs = null!;
+
+    private OptionButton _mineKind = null!;
+    private OptionButton _mineItem = null!;
+    private SpinBox _mineGold = null!;
+
+    private OptionButton _theirKind = null!;
+    private OptionButton _theirItem = null!;
+    private SpinBox _theirGold = null!;
+
     private Label _status = null!;
 
     private IReadOnlyList<Player> _targets = Array.Empty<Player>();
@@ -678,10 +898,10 @@ internal partial class TradingPanel : PanelContainer
         AnchorRight = 0.5f;
         AnchorTop = 0.5f;
         AnchorBottom = 0.5f;
-        OffsetLeft = -330f;
-        OffsetRight = 330f;
-        OffsetTop = -240f;
-        OffsetBottom = 240f;
+        OffsetLeft = -390f;
+        OffsetRight = 390f;
+        OffsetTop = -285f;
+        OffsetBottom = 285f;
     }
 
     public override void _Ready()
@@ -706,7 +926,7 @@ internal partial class TradingPanel : PanelContainer
         AddThemeStyleboxOverride("panel", style);
 
         var outer = new VBoxContainer();
-        outer.AddThemeConstantOverride("separation", 10);
+        outer.AddThemeConstantOverride("separation", 9);
         AddChild(outer);
 
         var top = new HBoxContainer();
@@ -730,7 +950,9 @@ internal partial class TradingPanel : PanelContainer
 
         var note = new Label
         {
-            Text = "Rest Site only - 1-for-1 trades - both players must accept.",
+            Text =
+                "Both players must choose Trade at this Rest Site. " +
+                "Each player can complete one exchange. Cards, safe relics and Gold are supported; Curses can be traded as cards.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart
         };
         note.AddThemeFontSizeOverride("font_size", 13);
@@ -738,48 +960,29 @@ internal partial class TradingPanel : PanelContainer
 
         outer.AddChild(new Label { Text = "Trade with" });
         _player = new OptionButton();
-        _player.ItemSelected += _ => RefreshItems();
+        _player.ItemSelected += _ => RefreshLegs();
         outer.AddChild(_player);
 
-        outer.AddChild(new Label { Text = "Item type" });
-        _kind = new OptionButton();
-        if (TradingService.GetLocalPlayer() is { } localForKinds)
-        {
-            if (TradingService.GetChoices(localForKinds, TradeItemKind.Card).Count > 0)
-                _kind.AddItem("Cards", (int)TradeItemKind.Card);
-            if (TradingService.GetChoices(localForKinds, TradeItemKind.Relic).Count > 0)
-                _kind.AddItem("Relics", (int)TradeItemKind.Relic);
-        }
-        _kind.ItemSelected += _ => RefreshItems();
-        outer.AddChild(_kind);
-
         var columns = new HBoxContainer();
-        columns.AddThemeConstantOverride("separation", 12);
+        columns.AddThemeConstantOverride("separation", 14);
         outer.AddChild(columns);
 
-        var mineBox = new VBoxContainer
-        {
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        mineBox.AddChild(new Label { Text = "You give" });
-        _mine = new OptionButton
-        {
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        mineBox.AddChild(_mine);
+        var mineBox = BuildLegEditor(
+            "You give",
+            out _mineKind,
+            out _mineItem,
+            out _mineGold);
         columns.AddChild(mineBox);
 
-        var theirsBox = new VBoxContainer
-        {
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        theirsBox.AddChild(new Label { Text = "You receive" });
-        _theirs = new OptionButton
-        {
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        theirsBox.AddChild(_theirs);
+        var theirsBox = BuildLegEditor(
+            "You receive",
+            out _theirKind,
+            out _theirItem,
+            out _theirGold);
         columns.AddChild(theirsBox);
+
+        _mineKind.ItemSelected += _ => RefreshMine();
+        _theirKind.ItemSelected += _ => RefreshTheirs();
 
         _status = new Label
         {
@@ -790,7 +993,7 @@ internal partial class TradingPanel : PanelContainer
 
         var propose = new Button
         {
-            Text = "Propose 1-for-1 Trade",
+            Text = "Propose Exchange",
             FocusMode = Control.FocusModeEnum.None
         };
         propose.Pressed += Propose;
@@ -805,90 +1008,328 @@ internal partial class TradingPanel : PanelContainer
         TradingService.Changed -= RefreshAll;
     }
 
-    private void RefreshAll()
+    internal void RefreshAll()
     {
         _targets = TradingService.GetTradeTargets();
 
+        int oldPlayer = _player.Selected;
         _player.Clear();
+
         foreach (var target in _targets)
             _player.AddItem(TradingService.GetPlayerName(target));
 
-        RefreshItems();
+        if (_player.ItemCount > 0)
+            _player.Select(Math.Clamp(oldPlayer, 0, _player.ItemCount - 1));
+
+        PopulateKinds(_mineKind, allowNothing: TradingService.AllowGifting);
+        PopulateKinds(_theirKind, allowNothing: TradingService.AllowGifting);
+
+        RefreshLegs();
     }
 
-    private void RefreshItems()
+    private static VBoxContainer BuildLegEditor(
+        string heading,
+        out OptionButton kind,
+        out OptionButton item,
+        out SpinBox gold)
     {
-        _mine.Clear();
-        _theirs.Clear();
-
-        var local = TradingService.GetLocalPlayer();
-        var target = GetSelectedTarget();
-
-        if (local is null || target is null || _kind.ItemCount == 0)
+        var box = new VBoxContainer
         {
-            _status.Text = "No valid multiplayer trade target.";
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(350f, 0f)
+        };
+        box.AddThemeConstantOverride("separation", 5);
+
+        var label = new Label { Text = heading };
+        label.AddThemeFontSizeOverride("font_size", 17);
+        box.AddChild(label);
+
+        kind = new OptionButton
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        box.AddChild(kind);
+
+        item = new OptionButton
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        box.AddChild(item);
+
+        gold = new SpinBox
+        {
+            MinValue = 1,
+            MaxValue = 99999,
+            Step = 1,
+            Value = 50,
+            AllowGreater = false,
+            AllowLesser = false,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        box.AddChild(gold);
+
+        return box;
+    }
+
+    private static void PopulateKinds(OptionButton button, bool allowNothing)
+    {
+        int oldId = button.ItemCount > 0 && button.Selected >= 0
+            ? button.GetItemId(button.Selected)
+            : (int)TradeLegKind.Card;
+
+        button.Clear();
+        button.AddItem("Card", (int)TradeLegKind.Card);
+        button.AddItem("Relic", (int)TradeLegKind.Relic);
+        button.AddItem("Gold", (int)TradeLegKind.Gold);
+
+        if (allowNothing)
+            button.AddItem("Nothing (Gift)", (int)TradeLegKind.None);
+
+        for (int i = 0; i < button.ItemCount; i++)
+        {
+            if (button.GetItemId(i) == oldId)
+            {
+                button.Select(i);
+                return;
+            }
+        }
+
+        button.Select(0);
+    }
+
+    private void RefreshLegs()
+    {
+        RefreshMine();
+        RefreshTheirs();
+
+        if (_targets.Count == 0)
+        {
+            _status.Text =
+                "Waiting for another player to choose Trade at this Rest Site.";
             return;
         }
 
-        var kind = (TradeItemKind)_kind.GetItemId(_kind.Selected);
-        _myChoices = TradingService.GetChoices(local, kind);
-        _theirChoices = TradingService.GetChoices(target, kind);
+        _status.Text = TradingService.AllowGifting
+            ? "Host allows gifting. The other player must still accept."
+            : "1-for-1 exchange. Gifting is disabled by the host.";
+    }
 
-        foreach (var item in _myChoices)
-            _mine.AddItem(item.Label);
+    private void RefreshMine()
+    {
+        var local = TradingService.GetLocalPlayer();
+        RefreshLeg(local, _mineKind, _mineItem, _mineGold, ref _myChoices);
+    }
 
-        foreach (var item in _theirChoices)
-            _theirs.AddItem(item.Label);
+    private void RefreshTheirs()
+    {
+        var target = GetSelectedTarget();
+        RefreshLeg(target, _theirKind, _theirItem, _theirGold, ref _theirChoices);
+    }
 
-        _status.Text =
-            _myChoices.Count == 0 || _theirChoices.Count == 0
-                ? "No safe tradable items are available for this combination."
-                : "The other player receives an Accept / Decline confirmation.";
+    private static void RefreshLeg(
+        Player? owner,
+        OptionButton kindButton,
+        OptionButton itemButton,
+        SpinBox goldBox,
+        ref IReadOnlyList<TradeItemChoice> choices)
+    {
+        itemButton.Clear();
+        choices = Array.Empty<TradeItemChoice>();
+
+        if (owner is null || kindButton.ItemCount == 0 || kindButton.Selected < 0)
+        {
+            itemButton.Visible = false;
+            goldBox.Visible = false;
+            return;
+        }
+
+        var kind = (TradeLegKind)kindButton.GetItemId(kindButton.Selected);
+
+        itemButton.Visible = kind is TradeLegKind.Card or TradeLegKind.Relic;
+        goldBox.Visible = kind == TradeLegKind.Gold;
+
+        if (kind is TradeLegKind.Card or TradeLegKind.Relic)
+        {
+            choices = TradingService.GetChoices(owner, kind);
+            foreach (var choice in choices)
+                itemButton.AddItem(choice.Label);
+        }
+        else if (kind == TradeLegKind.Gold)
+        {
+            goldBox.MaxValue = Math.Max(1, owner.Gold);
+            goldBox.Value = Math.Clamp((int)goldBox.Value, 1, Math.Max(1, owner.Gold));
+        }
     }
 
     private Player? GetSelectedTarget()
     {
         int index = _player.Selected;
-        return index >= 0 && index < _targets.Count ? _targets[index] : null;
+        return index >= 0 && index < _targets.Count
+            ? _targets[index]
+            : null;
     }
 
     private void Propose()
     {
+        var local = TradingService.GetLocalPlayer();
         var target = GetSelectedTarget();
-        if (target is null ||
-            _kind.ItemCount == 0 ||
-            _mine.Selected < 0 ||
-            _theirs.Selected < 0 ||
-            _mine.Selected >= _myChoices.Count ||
-            _theirs.Selected >= _theirChoices.Count)
+
+        if (local is null || target is null)
         {
-            _status.Text = "Select one valid item from each player.";
+            _status.Text = "Another Trade-ready player is required.";
             return;
         }
 
-        var kind = (TradeItemKind)_kind.GetItemId(_kind.Selected);
-        TradingService.Propose(
-            target,
-            kind,
-            _myChoices[_mine.Selected],
-            _theirChoices[_theirs.Selected]);
+        if (!TryBuildLeg(local, _mineKind, _mineItem, _mineGold, _myChoices, out var mine) ||
+            !TryBuildLeg(target, _theirKind, _theirItem, _theirGold, _theirChoices, out var theirs))
+        {
+            _status.Text = "Select valid items or Gold amounts on both sides.";
+            return;
+        }
 
+        TradingService.Propose(target, mine, theirs);
         _status.Text = "Proposal sent.";
+    }
+
+    private static bool TryBuildLeg(
+        Player owner,
+        OptionButton kindButton,
+        OptionButton itemButton,
+        SpinBox goldBox,
+        IReadOnlyList<TradeItemChoice> choices,
+        out TradeLegSpec leg)
+    {
+        leg = default;
+
+        if (kindButton.ItemCount == 0 || kindButton.Selected < 0)
+            return false;
+
+        var kind = (TradeLegKind)kindButton.GetItemId(kindButton.Selected);
+
+        if (kind == TradeLegKind.None)
+        {
+            leg = new TradeLegSpec(kind, -1, string.Empty, 0, "Nothing");
+            return TradingService.AllowGifting;
+        }
+
+        if (kind == TradeLegKind.Gold)
+        {
+            int amount = (int)goldBox.Value;
+            if (amount <= 0 || amount > owner.Gold)
+                return false;
+
+            leg = new TradeLegSpec(
+                kind,
+                -1,
+                string.Empty,
+                amount,
+                $"{amount} Gold");
+            return true;
+        }
+
+        int index = itemButton.Selected;
+        if (index < 0 || index >= choices.Count)
+            return false;
+
+        var choice = choices[index];
+        leg = new TradeLegSpec(
+            kind,
+            choice.SourceIndex,
+            choice.ExpectedId,
+            0,
+            choice.Label);
+        return true;
+    }
+}
+
+[HarmonyPatch(typeof(RestSiteOption), nameof(RestSiteOption.Generate))]
+internal static class TradingRestSiteOptionsPatch
+{
+    private static void Postfix(Player player, ref List<RestSiteOption> __result)
+    {
+        if (player.RunState.Players.Count <= 1)
+            return;
+
+        __result.Add(new TradeRestSiteOption(player)
+        {
+            IsEnabled = TradingService.IsAvailable
+        });
     }
 }
 
 [HarmonyPatch(typeof(NRestSiteRoom), nameof(NRestSiteRoom._Ready))]
-internal static class TradingRestSitePatch
+internal static class TradingRestSiteRoomPatch
 {
     private static void Postfix(NRestSiteRoom __instance)
     {
         try
         {
-            TradingService.Attach(__instance);
+            TradingService.BeginRestSite(__instance);
         }
         catch (Exception ex)
         {
-            MainFile.Logger.Error($"Trading setup failed open: {ex}");
+            MainFile.Logger.Error($"Trading Rest Site setup failed open: {ex}");
         }
+    }
+}
+
+[HarmonyPatch(typeof(NRestSiteButton), "Reload")]
+internal static class TradingRestSiteReloadPatch
+{
+    private static readonly FieldInfo? IconField =
+        AccessTools.Field(typeof(NRestSiteButton), "_icon");
+
+    private static readonly FieldInfo? LabelField =
+        AccessTools.Field(typeof(NRestSiteButton), "_label");
+
+    private static bool Prefix(NRestSiteButton __instance)
+    {
+        if (__instance.Option is not TradeRestSiteOption trade ||
+            !__instance.IsNodeReady())
+        {
+            return true;
+        }
+
+        if (IconField?.GetValue(__instance) is TextureRect icon)
+            icon.Texture = new HealRestSiteOption(trade.OwnerPlayer).Icon;
+
+        if (LabelField?.GetValue(__instance) is MegaLabel label)
+            label.SetTextAutoSize("TRADE");
+
+        return false;
+    }
+}
+
+[HarmonyPatch(typeof(NRestSiteButton), nameof(NRestSiteButton.RefreshTextState))]
+internal static class TradingRestSiteDescriptionPatch
+{
+    private static readonly MethodInfo? IsFocusedGetter =
+        AccessTools.PropertyGetter(
+            typeof(MegaCrit.Sts2.Core.Nodes.GodotExtensions.NClickableControl),
+            "IsFocused");
+
+    private static readonly FieldInfo? ExecutingField =
+        AccessTools.Field(typeof(NRestSiteButton), "_executingOption");
+
+    private static bool Prefix(NRestSiteButton __instance)
+    {
+        if (__instance.Option is not TradeRestSiteOption)
+            return true;
+
+        bool focused = IsFocusedGetter?.Invoke(__instance, null) as bool? ?? false;
+        bool executing = ExecutingField?.GetValue(__instance) as bool? ?? false;
+
+        if (focused || executing)
+        {
+            NRestSiteRoom.Instance?.SetText(
+                "Heal 15% Max HP and open trading. " +
+                "Both players must choose Trade. You do not Rest or Smith.");
+        }
+        else
+        {
+            NRestSiteRoom.Instance?.FadeOutOptionDescription();
+        }
+
+        return false;
     }
 }
