@@ -520,13 +520,22 @@ internal static class ChoiceCompareMerchantPatch
 {
     private static bool Prefix(NMerchantSlot __instance, InputEvent inputEvent)
     {
-        if (!SpireGpsSettings.ChoiceCompareEnabled ||
-            inputEvent is not InputEventMouseButton mouse ||
+        if (inputEvent is not InputEventMouseButton mouse ||
             mouse.Pressed ||
             mouse.ButtonIndex != MouseButton.Right)
         {
             return true;
         }
+
+        if (SpireGpsSettings.WishlistEnabled &&
+            Input.IsKeyPressed(Key.Shift) &&
+            WishlistService.TryToggleMerchantSlot(__instance))
+        {
+            return false;
+        }
+
+        if (!SpireGpsSettings.ChoiceCompareEnabled)
+            return true;
 
         return !ChoiceCompareService.TryPinMerchantSlot(__instance);
     }
