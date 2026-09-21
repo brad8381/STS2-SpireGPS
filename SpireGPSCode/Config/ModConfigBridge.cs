@@ -174,6 +174,9 @@ internal static class ModConfigBridge
             Header("Choice Compare"),
             Toggle("choiceCompareEnabled", "Enable Choice Compare", true),
 
+            Header("Run Telemetry"),
+            Toggle("runTelemetryEnabled", "Record Local Run Telemetry", true),
+
             Header("Trading"),
             Toggle("tradingEnabled", "Enable Trading (Host)", false),
             Toggle("tradingAllowCards", "Allow Card Trades (Host)", true),
@@ -347,6 +350,7 @@ internal static class ModConfigBridge
         Load("triggerInspectorEnabled", true);
         Load("turnTimelineEnabled", true);
         Load("choiceCompareEnabled", true);
+        Load("runTelemetryEnabled", true);
 
         Load("tradingEnabled", false);
         Load("tradingAllowCards", true);
