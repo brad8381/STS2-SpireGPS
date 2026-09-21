@@ -1149,7 +1149,6 @@ internal partial class TradingPanel : PanelContainer
         };
         title.AddThemeFontSizeOverride("font_size", 22);
         top.AddChild(title);
-        PanelDrag.Attach(title, this);
 
         var close = new Button
         {
@@ -1209,6 +1208,8 @@ internal partial class TradingPanel : PanelContainer
         };
         propose.Pressed += Propose;
         outer.AddChild(propose);
+
+        PanelChrome.Attach("trading", this, top, outer);
 
         TradingService.Changed += RefreshAll;
         RefreshAll();
