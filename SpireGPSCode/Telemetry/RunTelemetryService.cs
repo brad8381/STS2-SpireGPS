@@ -1,7 +1,9 @@
 using System.Text.Json;
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.Saves;
 using SpireGPS.Config;
 using SpireGPS.Features.PostRunSummary;
 
@@ -121,20 +123,38 @@ internal static class RunTelemetryService
     internal static string GetAbsoluteBaseDirectory()
         => BaseDirectory;
 
-    internal static void RecordRunEnded(bool isVictory, bool isAbandoned)
+    internal static void RecordRunEnded(
+        SerializableRun run,
+        bool isVictory,
+        bool isAbandoned)
     {
         if (_ended || _current is null)
             return;
 
         _ended = true;
-        Publish(
-            MainFile.ModId,
-            "RunEnded",
-            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["victory"] = isVictory.ToString(),
-                ["abandoned"] = isAbandoned.ToString()
-            });
+
+        var data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["victory"] = isVictory.ToString(),
+            ["abandoned"] = isAbandoned.ToString(),
+            ["actIndex"] = run.CurrentActIndex.ToString(),
+            ["floorsVisited"] = run.VisitedMapCoords.Count.ToString(),
+            ["ascension"] = run.Ascension.ToString(),
+            ["runTimeSeconds"] = run.RunTime.ToString()
+        };
+
+        var player = LocalContext.GetMe(run);
+        if (player is not null)
+        {
+            data["currentHp"] = player.CurrentHp.ToString();
+            data["maxHp"] = player.MaxHp.ToString();
+            data["gold"] = player.Gold.ToString();
+            data["deckSize"] = player.Deck.Count.ToString();
+            data["relicCount"] = player.Relics.Count.ToString();
+            data["potionCount"] = player.Potions.Count.ToString();
+        }
+
+        Publish(MainFile.ModId, "RunEnded", data);
     }
 
     internal static void RecordRunClosed()
@@ -236,7 +256,7 @@ internal static class RunTelemetryEndedPatch
         bool isVictory,
         MegaCrit.Sts2.Core.Saves.SerializableRun __result)
     {
-        RunTelemetryService.RecordRunEnded(isVictory, __instance.IsAbandoned);
+        RunTelemetryService.RecordRunEnded(__result, isVictory, __instance.IsAbandoned);
         PostRunSummary.Show(__result, isVictory, __instance.IsAbandoned);
     }
 }
