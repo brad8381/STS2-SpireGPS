@@ -18,7 +18,9 @@ namespace SpireGPS.Features.Wishlist;
 
 internal static class WishlistService
 {
-    private const string CardSection = "wishlist_cards";
+    // v2 intentionally starts clean. Earlier QA builds could visually/toggle
+    // the wrong grid items, leaving polluted favourites in wishlist_cards.
+    private const string CardSection = "wishlist_cards_v2";
     private const string RelicSection = "wishlist_relics";
     private const string StarNodeName = "WishlistStar";
     private const string CardStarNodeName = "WishlistCardBadge";
@@ -72,13 +74,27 @@ internal static class WishlistService
     {
         // Remove the old free-floating label implementation if it exists.
         holder.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
+        holder.GetNodeOrNull<Label>(CardStarNodeName)?.QueueFree();
         holder.GetNodeOrNull<PanelContainer>(CardStarNodeName)?.QueueFree();
-        holder.CardNode?.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
-        holder.CardNode?.GetNodeOrNull<PanelContainer>(CardStarNodeName)?.QueueFree();
 
-        Control owner = holder.CardNode is Control cardNode ? cardNode : holder;
+        if (holder.CardNode is { } cardNode)
+        {
+            cardNode.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
+            cardNode.GetNodeOrNull<Label>(CardStarNodeName)?.QueueFree();
+            cardNode.GetNodeOrNull<PanelContainer>(CardStarNodeName)?.QueueFree();
+
+            Control body = cardNode.Body;
+            body.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
+            body.GetNodeOrNull<PanelContainer>(CardStarNodeName)?.QueueFree();
+
+            SetCardStar(
+                body,
+                SpireGpsSettings.WishlistEnabled && IsCardWishlisted(holder.CardModel));
+            return;
+        }
+
         SetCardStar(
-            owner,
+            holder,
             SpireGpsSettings.WishlistEnabled && IsCardWishlisted(holder.CardModel));
     }
 
@@ -310,10 +326,18 @@ internal static class WishlistService
             owner.AddChild(star);
         }
 
-        // NCard uses a stable 300x422 local coordinate space. Keeping the star
-        // on the card node makes it follow hover/scale animation while placing
-        // it at the actual lower-right of the card frame.
-        star.Position = new Vector2(246f, 365f);
+        // The owner is NCard.Body (%CardContainer), which tracks the actual
+        // rendered card surface rather than the NCard root/holder layout rect.
+        // Anchor to its bottom-right so library scaling/hover animation carries
+        // the star with the card without guessing pixel coordinates.
+        star.AnchorLeft = 1f;
+        star.AnchorRight = 1f;
+        star.AnchorTop = 1f;
+        star.AnchorBottom = 1f;
+        star.OffsetLeft = -48f;
+        star.OffsetRight = -8f;
+        star.OffsetTop = -50f;
+        star.OffsetBottom = -10f;
         star.Visible = visible;
     }
 
