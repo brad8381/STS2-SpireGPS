@@ -5,7 +5,7 @@ namespace BantersTweaks.Integration;
 
 internal static class ExternalIntegrationLoader
 {
-    private const string DirectoryPath = "user://banters_tweaks/integrations";
+    private const string FolderName = "banters_tweaks";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -15,7 +15,7 @@ internal static class ExternalIntegrationLoader
     };
 
     internal static string GetAbsoluteDirectory()
-        => ProjectSettings.GlobalizePath(DirectoryPath);
+        => Path.Combine(OS.GetUserDataDir(), FolderName, "integrations");
 
     internal static void LoadAll()
     {
