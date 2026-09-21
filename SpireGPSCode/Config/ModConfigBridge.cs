@@ -6,6 +6,7 @@ using SpireGPS.Features.RelicProgress;
 using SpireGPS.Features.SynergyHints;
 using SpireGPS.Features.Trading;
 using SpireGPS.Features.Wishlist;
+using SpireGPS.Telemetry;
 
 namespace SpireGPS.Config;
 
@@ -64,17 +65,21 @@ internal static class ModConfigBridge
 
         try
         {
-            var entries = BuildEntries();
             var register = _apiType.GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Where(m => m.Name == "Register")
                 .OrderByDescending(m => m.GetParameters().Length)
                 .First();
 
-            var names = new Dictionary<string, string> { ["en"] = "Banter's Tweak's" };
-            if (register.GetParameters().Length == 4)
-                register.Invoke(null, new object[] { MainFile.ModId, "Banter's Tweak's", names, entries });
-            else
-                register.Invoke(null, new object[] { MainFile.ModId, "Banter's Tweak's", entries });
+            foreach (var group in BuildGroups())
+            {
+                Array entries = ToTypedArray(group.Entries);
+                var names = new Dictionary<string, string> { ["en"] = group.DisplayName };
+
+                if (register.GetParameters().Length == 4)
+                    register.Invoke(null, new object[] { group.ModId, group.DisplayName, names, entries });
+                else
+                    register.Invoke(null, new object[] { group.ModId, group.DisplayName, entries });
+            }
 
             _registered = true;
             LoadSavedValues();
@@ -88,105 +93,119 @@ internal static class ModConfigBridge
         }
     }
 
-    private static Array BuildEntries()
+    private sealed record ConfigGroup(string ModId, string DisplayName, List<object> Entries);
+
+    private static IReadOnlyList<ConfigGroup> BuildGroups()
     {
         var priorityOptions = new[] { "None", "Elites ↑", "Treasure ↑", "Rest ↑", "Shop ↑", "Unknown ↑", "Monsters ↓", "Monsters ↑" };
 
-        var entries = new List<object>
+        // ModConfig collapses each registration as a unit. Register Banter's
+        // modules separately and alphabetically so the Mods tab stays usable.
+        return new[]
         {
-            Header("Compatibility"),
-            Toggle("yieldToOverlappingMods", "Yield to Overlapping QoL Mods", true),
+            Group("ChoiceCompare", "Choice Compare",
+                Toggle("choiceCompareEnabled", "Enable Choice Compare", true)),
 
-            Header("Route Planner"),
-            Toggle("routePlannerEnabled", "Enable Route Planner", true),
-            Toggle("routePanelEnabled", "Show Route List", true),
-            Toggle("highlightSelectedRoute", "Highlight Selected Route", true),
-            Toggle("fadeUnselectedRoutes", "Fade Unselected Routes", false),
-            Dropdown("defaultRouteSort", "Default Route Sort", "Preferred",
-                "Preferred", "Route Order", "Monsters", "Unknowns", "Elites", "Shops", "Rest Sites", "Treasures"),
-            Toggle("sortDescending", "Sort Highest First", true),
+            Group("Compatibility", "Compatibility",
+                Toggle("yieldToOverlappingMods", "Yield to Overlapping QoL Mods", true)),
 
-            Header("Suggested Route"),
-            Toggle("preferredRouteEnabled", "Show Suggested Route", true),
-            Toggle("autoHighlightPreferredRoute", "Auto-highlight Suggested Route", true),
-            Toggle("routeAutoSelectNextNode", "Auto-select Next Suggested Node", false),
-            Toggle("routeRushAutoTravel", "Rush Mode - Skip Auto-travel Confirmation", false),
-            Toggle("routePrioritiesEnabled", "Use Priority Sorting", true),
-            Dropdown("routePriority1", "Priority 1", "Elites ↑", priorityOptions),
-            Dropdown("routePriority2", "Priority 2", "Treasure ↑", priorityOptions),
-            Dropdown("routePriority3", "Priority 3", "None", priorityOptions),
-            Slider("monsterWeight", "Monster Weight", -1f),
-            Slider("unknownWeight", "Unknown (?) Weight", 0f),
-            Slider("eliteWeight", "Elite Weight", 2f),
-            Slider("shopWeight", "Shop Weight", 1f),
-            Slider("restWeight", "Campsite Weight", 2f),
-            Slider("treasureWeight", "Treasure Weight", 1f),
+            Group("DeckXRay", "Deck X-Ray",
+                Toggle("deckXRayEnabled", "Enable Deck X-Ray", true)),
 
-            Header("Turn Guard"),
-            Toggle("turnGuardEnabled", "Enable Turn Guard", true),
-            Toggle("turnGuardWarnPlayableCards", "Warn When Playable Cards Remain", true),
-            Toggle("turnGuardWarnEnergy", "Mention Remaining Energy With Playable Cards", true),
-            Toggle("turnGuardWarnLethal", "Warn About Potentially Lethal Incoming Damage", true),
-            Toggle("turnGuardAutoUnready", "Auto-unready If State Changes", true),
-            SliderRange("turnGuardConfirmSeconds", "Second-click Confirmation Window", 2.5f, 1f, 5f, 0.5f),
+            Group("DrawingPalette", "Drawing Palette",
+                Toggle("drawingPaletteEnabled", "Enable Drawing Palette", true),
+                Toggle("drawingPaletteRecolorExisting", "Recolor Existing Drawings When Color Changes", false),
+                Toggle("drawingPaletteHostForceRecolor", "Host Forces Recolor Mode", false)),
 
-            Header("Potion Guard"),
-            Toggle("potionGuardEnabled", "Enable Potion Guard", true),
-            SliderRange("potionGuardConfirmSeconds", "Discard Confirmation Window", 2.5f, 1f, 5f, 0.5f),
+            Group("GhostTurnPlanner", "Ghost Turn Planner",
+                Toggle("ghostTurnPlannerEnabled", "Enable Ghost Turn Planner", true)),
 
-            Header("Relic Progress"),
-            Toggle("relicTrackerEnabled", "Enable Relic Progress", true),
-            Toggle("relicTrackerShowProgressFraction", "Show Progress Fractions", true),
-            Toggle("relicTrackerShowReady", "Show Ready Indicator", true),
+            Group("MapLegend", "Map Legend",
+                Toggle("mapLegendEnabled", "Enable Map Legend Tweaks", true),
+                Toggle("mapLegendVisible", "Show Map Legend", true),
+                Toggle("mapLegendMovable", "Allow Moving Map Legend", true)),
 
-            Header("Drawing Palette"),
-            Toggle("drawingPaletteEnabled", "Enable Drawing Palette", true),
-            Toggle("drawingPaletteRecolorExisting", "Recolor Existing Drawings When Color Changes", false),
-            Toggle("drawingPaletteHostForceRecolor", "Host Forces Recolor Mode", false),
+            Group("MultiplayerPings", "Multiplayer Pings",
+                Toggle("multiplayerPingsEnabled", "Enable Multiplayer Pings", true)),
 
-            Header("Map Legend"),
-            Toggle("mapLegendEnabled", "Enable Map Legend Tweaks", true),
-            Toggle("mapLegendVisible", "Show Map Legend", true),
-            Toggle("mapLegendMovable", "Allow Moving Map Legend", true),
+            Group("PotionGuard", "Potion Guard",
+                Toggle("potionGuardEnabled", "Enable Potion Guard", true),
+                SliderRange("potionGuardConfirmSeconds", "Discard Confirmation Window", 2.5f, 1f, 5f, 0.5f)),
 
-            Header("Synergy Hints"),
-            Toggle("synergyHintsEnabled", "Enable Synergy Hints", true),
-            SliderRange("synergyHintsMax", "Maximum Hints per Item", 3f, 1f, 6f, 1f),
+            Group("RelicProgress", "Relic Progress",
+                Toggle("relicTrackerEnabled", "Enable Relic Progress", true),
+                Toggle("relicTrackerShowProgressFraction", "Show Progress Fractions", true),
+                Toggle("relicTrackerShowReady", "Show Ready Indicator", true)),
 
-            Header("Build Wishlist"),
-            Toggle("wishlistEnabled", "Enable Build Wishlist", true),
+            Group("RoutePlanner", "Route Planner",
+                Toggle("routePlannerEnabled", "Enable Route Planner", true),
+                Toggle("routePanelEnabled", "Show Route List", true),
+                Toggle("highlightSelectedRoute", "Highlight Selected Route", true),
+                Toggle("fadeUnselectedRoutes", "Fade Unselected Routes", false),
+                Dropdown("defaultRouteSort", "Default Route Sort", "Preferred",
+                    "Preferred", "Route Order", "Monsters", "Unknowns", "Elites", "Shops", "Rest Sites", "Treasures"),
+                Toggle("sortDescending", "Sort Highest First", true),
+                Header("Suggested Route"),
+                Toggle("preferredRouteEnabled", "Show Suggested Route", true),
+                Toggle("autoHighlightPreferredRoute", "Auto-highlight Suggested Route", true),
+                Toggle("routeAutoSelectNextNode", "Auto-select Next Suggested Node", false),
+                Toggle("routeRushAutoTravel", "Rush Mode - Skip Auto-travel Confirmation", false),
+                Toggle("routePrioritiesEnabled", "Use Priority Sorting", true),
+                Dropdown("routePriority1", "Priority 1", "Elites ↑", priorityOptions),
+                Dropdown("routePriority2", "Priority 2", "Treasure ↑", priorityOptions),
+                Dropdown("routePriority3", "Priority 3", "None", priorityOptions),
+                Slider("monsterWeight", "Monster Weight", -1f),
+                Slider("unknownWeight", "Unknown (?) Weight", 0f),
+                Slider("eliteWeight", "Elite Weight", 2f),
+                Slider("shopWeight", "Shop Weight", 1f),
+                Slider("restWeight", "Campsite Weight", 2f),
+                Slider("treasureWeight", "Treasure Weight", 1f)),
 
-            Header("Multiplayer Pings"),
-            Toggle("multiplayerPingsEnabled", "Enable Multiplayer Pings", true),
+            Group("RunTelemetry", "Run Telemetry",
+                Toggle("runTelemetryEnabled", "Record Local Run Telemetry", true),
+                Button("openTelemetryFolder", "Local data folder", "Open Folder", _ => OpenTelemetryFolder())),
 
-            Header("Ghost Turn Planner"),
-            Toggle("ghostTurnPlannerEnabled", "Enable Ghost Turn Planner", true),
+            Group("SynergyHints", "Synergy Hints",
+                Toggle("synergyHintsEnabled", "Enable Synergy Hints", true),
+                SliderRange("synergyHintsMax", "Maximum Hints per Item", 3f, 1f, 6f, 1f)),
 
-            Header("Deck X-Ray"),
-            Toggle("deckXRayEnabled", "Enable Deck X-Ray", true),
+            Group("Trading", "Trading",
+                Toggle("tradingEnabled", "Enable Trading (Host)", false),
+                Toggle("tradingAllowCards", "Allow Card Trades (Host)", true),
+                Toggle("tradingAllowRelics", "Allow Safe Relic Trades (Host)", true),
+                Toggle("tradingAllowGold", "Allow Gold Trades (Host)", true),
+                Toggle("tradingAllowGifting", "Allow Gifting (Host)", false)),
 
-            Header("Trigger Inspector"),
-            Toggle("triggerInspectorEnabled", "Enable Trigger Inspector", true),
+            Group("TriggerInspector", "Trigger Inspector",
+                Toggle("triggerInspectorEnabled", "Enable Trigger Inspector", true)),
 
-            Header("Turn Timeline"),
-            Toggle("turnTimelineEnabled", "Enable Turn Timeline", true),
+            Group("TurnGuard", "Turn Guard",
+                Toggle("turnGuardEnabled", "Enable Turn Guard", true),
+                Toggle("turnGuardWarnPlayableCards", "Warn When Playable Cards Remain", true),
+                Toggle("turnGuardWarnEnergy", "Mention Remaining Energy With Playable Cards", true),
+                Toggle("turnGuardWarnLethal", "Warn About Potentially Lethal Incoming Damage", true),
+                Toggle("turnGuardAutoUnready", "Auto-unready If State Changes", true),
+                SliderRange("turnGuardConfirmSeconds", "Second-click Confirmation Window", 2.5f, 1f, 5f, 0.5f)),
 
-            Header("Choice Compare"),
-            Toggle("choiceCompareEnabled", "Enable Choice Compare", true),
+            Group("TurnTimeline", "Turn Timeline",
+                Toggle("turnTimelineEnabled", "Enable Turn Timeline", true)),
 
-            Header("Run Telemetry"),
-            Toggle("runTelemetryEnabled", "Record Local Run Telemetry", true),
-
-            Header("Trading"),
-            Toggle("tradingEnabled", "Enable Trading (Host)", false),
-            Toggle("tradingAllowCards", "Allow Card Trades (Host)", true),
-            Toggle("tradingAllowRelics", "Allow Safe Relic Trades (Host)", true),
-            Toggle("tradingAllowGold", "Allow Gold Trades (Host)", true),
-            Toggle("tradingAllowGifting", "Allow Gifting (Host)", false)
+            Group("Wishlist", "Wishlist",
+                Toggle("wishlistEnabled", "Enable Build Wishlist", true))
         };
+    }
 
+    private static ConfigGroup Group(string suffix, string name, params object[] entries)
+        => new(
+            $"{MainFile.ModId}.{suffix}",
+            $"Banter's Tweak's — {name}",
+            entries.ToList());
+
+    private static Array ToTypedArray(IReadOnlyList<object> entries)
+    {
         var result = Array.CreateInstance(_entryType!, entries.Count);
-        for (int i = 0; i < entries.Count; i++) result.SetValue(entries[i], i);
+        for (int i = 0; i < entries.Count; i++)
+            result.SetValue(entries[i], i);
         return result;
     }
 
@@ -242,6 +261,29 @@ internal static class ModConfigBridge
         Set(e, "OnChanged", new Action<object>(v => ApplyAndRefresh(key, v)));
     });
 
+    private static object Button(string key, string label, string buttonText, Action<object> onChanged) => Entry(e =>
+    {
+        Set(e, "Key", key);
+        Set(e, "Label", label);
+        Set(e, "Type", Enum.Parse(_configType!, "Button"));
+        Set(e, "ButtonText", buttonText);
+        Set(e, "OnChanged", onChanged);
+    });
+
+    private static void OpenTelemetryFolder()
+    {
+        try
+        {
+            string path = RunTelemetryService.GetAbsoluteBaseDirectory();
+            Directory.CreateDirectory(path);
+            OS.ShellShowInFileManager(path);
+        }
+        catch (Exception ex)
+        {
+            MainFile.Logger.Warn($"Could not open Banter data folder: {ex.Message}");
+        }
+    }
+
     internal static void SetValue(string key, object value)
     {
         if (!_registered || _apiType is null)
@@ -250,7 +292,7 @@ internal static class ModConfigBridge
         try
         {
             _apiType.GetMethod("SetValue", BindingFlags.Public | BindingFlags.Static)
-                ?.Invoke(null, new object[] { MainFile.ModId, key, value });
+                ?.Invoke(null, new object[] { RegistrationIdForKey(key), key, value });
         }
         catch (Exception ex)
         {
@@ -291,6 +333,36 @@ internal static class ModConfigBridge
 
     private static void Set(object obj, string property, object value)
         => obj.GetType().GetProperty(property)?.SetValue(obj, value);
+
+    private static string RegistrationIdForKey(string key)
+    {
+        string suffix = key switch
+        {
+            "yieldToOverlappingMods" => "Compatibility",
+            _ when key.StartsWith("route", StringComparison.OrdinalIgnoreCase) => "RoutePlanner",
+            _ when key.EndsWith("Weight", StringComparison.OrdinalIgnoreCase) => "RoutePlanner",
+            "highlightSelectedRoute" or "fadeUnselectedRoutes" or "defaultRouteSort" or
+                "sortDescending" or "preferredRouteEnabled" or "autoHighlightPreferredRoute" => "RoutePlanner",
+            _ when key.StartsWith("turnGuard", StringComparison.OrdinalIgnoreCase) => "TurnGuard",
+            _ when key.StartsWith("potionGuard", StringComparison.OrdinalIgnoreCase) => "PotionGuard",
+            _ when key.StartsWith("relicTracker", StringComparison.OrdinalIgnoreCase) => "RelicProgress",
+            _ when key.StartsWith("drawingPalette", StringComparison.OrdinalIgnoreCase) => "DrawingPalette",
+            _ when key.StartsWith("mapLegend", StringComparison.OrdinalIgnoreCase) => "MapLegend",
+            _ when key.StartsWith("synergyHints", StringComparison.OrdinalIgnoreCase) => "SynergyHints",
+            _ when key.StartsWith("wishlist", StringComparison.OrdinalIgnoreCase) => "Wishlist",
+            _ when key.StartsWith("multiplayerPings", StringComparison.OrdinalIgnoreCase) => "MultiplayerPings",
+            _ when key.StartsWith("ghostTurnPlanner", StringComparison.OrdinalIgnoreCase) => "GhostTurnPlanner",
+            _ when key.StartsWith("deckXRay", StringComparison.OrdinalIgnoreCase) => "DeckXRay",
+            _ when key.StartsWith("triggerInspector", StringComparison.OrdinalIgnoreCase) => "TriggerInspector",
+            _ when key.StartsWith("turnTimeline", StringComparison.OrdinalIgnoreCase) => "TurnTimeline",
+            _ when key.StartsWith("choiceCompare", StringComparison.OrdinalIgnoreCase) => "ChoiceCompare",
+            _ when key.StartsWith("runTelemetry", StringComparison.OrdinalIgnoreCase) => "RunTelemetry",
+            _ when key.StartsWith("trading", StringComparison.OrdinalIgnoreCase) => "Trading",
+            _ => "Compatibility"
+        };
+
+        return $"{MainFile.ModId}.{suffix}";
+    }
 
     private static void LoadSavedValues()
     {
@@ -368,7 +440,7 @@ internal static class ModConfigBridge
             var getValue = _apiType!.GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .First(m => m.Name == "GetValue" && m.IsGenericMethodDefinition)
                 .MakeGenericMethod(typeof(T));
-            var result = getValue.Invoke(null, new object[] { MainFile.ModId, key });
+            var result = getValue.Invoke(null, new object[] { RegistrationIdForKey(key), key });
             SpireGpsSettings.Apply(key, result ?? fallback!);
         }
         catch
