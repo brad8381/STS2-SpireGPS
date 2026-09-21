@@ -1,5 +1,6 @@
 using Godot;
 using HarmonyLib;
+using BantersTweaks.Integration;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Runs;
 using SpireGPS.Compatibility;
@@ -8,6 +9,7 @@ using SpireGPS.Features.DrawingPalette;
 using SpireGPS.Features.RoutePlanner;
 using SpireGPS.Features.TurnGuard;
 using SpireGPS.Features.Trading;
+using SpireGPS.Telemetry;
 using SpireGPS.UI;
 
 namespace SpireGPS;
@@ -36,6 +38,8 @@ public partial class MainFile : Node
 
         RouteHighlighter.Initialize();
         RoutePanelController.EnsureInstalled();
+        RunTelemetryService.Initialize();
+        BantersIntegration.Initialize();
         ModConfigBridge.DeferredRegister();
 
         var manager = RunManager.Instance;
@@ -47,13 +51,23 @@ public partial class MainFile : Node
     private static void OnRunStarted(RunState runState)
     {
         RunState = runState;
+        RunTelemetryService.StartRun(runState);
         DrawingPaletteService.ResetForRun();
         TradingService.InitializeForRun();
         RefreshRoutes();
     }
 
-    private static void OnActEntered() => RefreshRoutes();
-    private static void OnRoomEntered() => RefreshRoutes();
+    private static void OnActEntered()
+    {
+        RunTelemetryService.RecordActEntered(RunState);
+        RefreshRoutes();
+    }
+
+    private static void OnRoomEntered()
+    {
+        RunTelemetryService.RecordRoomEntered(RunState);
+        RefreshRoutes();
+    }
 
     internal static void RefreshRoutes()
     {
