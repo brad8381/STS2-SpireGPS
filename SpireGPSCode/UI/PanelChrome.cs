@@ -7,6 +7,15 @@ internal static class PanelChrome
 {
     private const string Section = "panel_layout";
 
+    private sealed record LivePanel(
+        WeakReference<Control> Panel,
+        Action Expand,
+        Action Unlock,
+        Action ResetPosition);
+
+    private static readonly Dictionary<string, LivePanel> LivePanels =
+        new(StringComparer.OrdinalIgnoreCase);
+
     internal static void Attach(
         string id,
         Control panel,
@@ -16,20 +25,22 @@ internal static class PanelChrome
     {
         bool locked = LocalPreferences.GetBool(Section, id + ".locked", false);
         bool minimized = LocalPreferences.GetBool(Section, id + ".minimized", false);
-        // v2 resets the first layout experiment, which stored anchored local
-        // positions and could leave panels pinned under the top bar.
+
+        // v2 replaced the original anchored-local coordinate storage.
         bool hasPosition = LocalPreferences.GetBool(Section, id + ".has_position_v2", false);
         Vector2 savedPosition = LocalPreferences.GetVector2(
             Section,
             id + ".position_v2",
             panel.GlobalPosition);
 
+        Vector2 defaultPosition = panel.GlobalPosition;
+
         var moveHandle = new Label
         {
             Text = "::",
             TooltipText = "Drag to move this panel.",
             MouseFilter = Control.MouseFilterEnum.Stop,
-            CustomMinimumSize = new Vector2(26f, 24f),
+            CustomMinimumSize = new Vector2(28f, 26f),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
         };
@@ -95,22 +106,33 @@ internal static class PanelChrome
             Callable.From(panel.ResetSize).CallDeferred();
         }
 
-        lockButton.Pressed += () =>
+        void SetLocked(bool value)
         {
-            locked = !locked;
+            locked = value;
             lockButton.Text = locked ? "U" : "L";
             lockButton.TooltipText = locked
                 ? "Unlock panel position."
                 : "Lock panel position.";
             LocalPreferences.Set(Section, id + ".locked", locked);
-        };
+        }
 
-        minimizeButton.Pressed += () =>
+        void SetMinimized(bool value)
         {
-            minimized = !minimized;
+            minimized = value;
             LocalPreferences.Set(Section, id + ".minimized", minimized);
             ApplyMinimized();
-        };
+        }
+
+        void ResetPosition()
+        {
+            LocalPreferences.Set(Section, id + ".has_position_v2", false);
+            panel.GlobalPosition = defaultPosition;
+            PanelDrag.ClampToViewport(panel);
+            onMoved?.Invoke();
+        }
+
+        lockButton.Pressed += () => SetLocked(!locked);
+        minimizeButton.Pressed += () => SetMinimized(!minimized);
 
         PanelDrag.Attach(
             moveHandle,
@@ -123,16 +145,62 @@ internal static class PanelChrome
             },
             () => !locked);
 
+        LivePanels[id] = new LivePanel(
+            new WeakReference<Control>(panel),
+            () => SetMinimized(false),
+            () => SetLocked(false),
+            ResetPosition);
+
         Callable.From(() =>
         {
+            defaultPosition = panel.GlobalPosition;
+
             if (hasPosition)
-            {
                 panel.GlobalPosition = savedPosition;
-                PanelDrag.ClampToViewport(panel);
+
+            // Always clamp, including default positions. This also recovers
+            // panels saved by an older build under the STS2 top HUD.
+            PanelDrag.ClampToViewport(panel);
+
+            if (hasPosition)
                 onMoved?.Invoke();
-            }
 
             ApplyMinimized();
         }).CallDeferred();
+    }
+
+    internal static void ExpandAll()
+        => ForEachLive(panel => panel.Expand());
+
+    internal static void UnlockAll()
+        => ForEachLive(panel => panel.Unlock());
+
+    internal static void ResetAll()
+    {
+        ForEachLive(panel =>
+        {
+            panel.Unlock();
+            panel.Expand();
+            panel.ResetPosition();
+        });
+
+        SpireGpsToast.Show("Banter UI layout reset.");
+    }
+
+    private static void ForEachLive(Action<LivePanel> action)
+    {
+        foreach (string key in LivePanels.Keys.ToArray())
+        {
+            LivePanel state = LivePanels[key];
+
+            if (!state.Panel.TryGetTarget(out var panel) ||
+                !GodotObject.IsInstanceValid(panel))
+            {
+                LivePanels.Remove(key);
+                continue;
+            }
+
+            action(state);
+        }
     }
 }
