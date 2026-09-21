@@ -159,6 +159,60 @@ internal static class CompatibilityManager
         return string.Join(System.Environment.NewLine, lines);
     }
 
+    private static IEnumerable<object> GetLoadedModsReflectively()
+    {
+        object? source =
+            AccessTools.Property(typeof(ModManager), "LoadedMods")?.GetValue(null) ??
+            AccessTools.Field(typeof(ModManager), "_loadedMods")?.GetValue(null) ??
+            AccessTools.Property(typeof(ModManager), "AllMods")?.GetValue(null) ??
+            AccessTools.Field(typeof(ModManager), "_mods")?.GetValue(null);
+
+        if (source is not System.Collections.IEnumerable enumerable)
+            yield break;
+
+        foreach (object? item in enumerable)
+        {
+            if (item is not null)
+                yield return item;
+        }
+    }
+
+    private static (string name, string version, string assembly, bool loaded) DescribeMod(object mod)
+    {
+        object? manifest = GetMemberValue(mod, "manifest");
+        var assembly = GetMemberValue(mod, "assembly") as Assembly;
+
+        string name =
+            GetMemberValue(manifest, "name") as string ??
+            assembly?.GetName().Name ??
+            GetMemberValue(mod, "pckName") as string ??
+            mod.GetType().Name;
+
+        string version =
+            GetMemberValue(manifest, "version") as string ??
+            assembly?.GetName().Version?.ToString() ??
+            "?";
+
+        string assemblyName = assembly?.GetName().Name ?? "(no assembly)";
+
+        bool loaded = GetMemberValue(mod, "wasLoaded") is bool value
+            ? value
+            : assembly is not null;
+
+        return (name, version, assemblyName, loaded);
+    }
+
+    private static object? GetMemberValue(object? instance, string name)
+    {
+        if (instance is null)
+            return null;
+
+        Type type = instance.GetType();
+
+        return AccessTools.Field(type, name)?.GetValue(instance) ??
+               AccessTools.Property(type, name)?.GetValue(instance);
+    }
+
     private static void AppendPatchReport(
         List<string> lines,
         string module,
