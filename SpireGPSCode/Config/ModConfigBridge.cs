@@ -8,6 +8,7 @@ using SpireGPS.Features.SynergyHints;
 using SpireGPS.Features.Trading;
 using SpireGPS.Features.Wishlist;
 using SpireGPS.Telemetry;
+using SpireGPS.UI;
 
 namespace SpireGPS.Config;
 
@@ -190,6 +191,11 @@ internal static class ModConfigBridge
 
             Group("TurnTimeline", "Turn Timeline",
                 Toggle("turnTimelineEnabled", "Enable Turn Timeline", true)),
+
+            Group("UiLayout", "UI Layout",
+                Button("uiExpandAllPanels", "All Banter panels", "Expand All", _ => PanelChrome.ExpandAll()),
+                Button("uiUnlockAllPanels", "All Banter panels", "Unlock All", _ => PanelChrome.UnlockAll()),
+                Button("uiResetLayout", "Banter panel positions", "Reset Layout", _ => PanelChrome.ResetAll())),
 
             Group("Wishlist", "Wishlist",
                 Toggle("wishlistEnabled", "Enable Build Wishlist", true))
