@@ -4,6 +4,11 @@ namespace SpireGPS.UI;
 
 internal static class PanelDrag
 {
+    // STS2's top HUD overlaps the raw viewport. Keep every Banter panel's
+    // draggable chrome below it so a panel can never become unrecoverable.
+    private const float SafeTopMargin = 96f;
+    private const float SafeSideMargin = 12f;
+    private const float SafeBottomMargin = 12f;
     internal static void Attach(
         Control handle,
         Control panel,
@@ -52,11 +57,11 @@ internal static class PanelDrag
         Vector2 size = panel.Size;
         Vector2 position = panel.GlobalPosition;
 
-        float minX = visible.Position.X;
-        float minY = visible.Position.Y;
+        float minX = visible.Position.X + SafeSideMargin;
+        float minY = visible.Position.Y + SafeTopMargin;
         Vector2 visibleEnd = visible.Position + visible.Size;
-        float maxX = visibleEnd.X - Math.Max(40f, size.X);
-        float maxY = visibleEnd.Y - Math.Max(30f, size.Y);
+        float maxX = visibleEnd.X - SafeSideMargin - Math.Max(40f, size.X);
+        float maxY = visibleEnd.Y - SafeBottomMargin - Math.Max(30f, size.Y);
 
         panel.GlobalPosition = new Vector2(
             Math.Clamp(position.X, minX, Math.Max(minX, maxX)),
