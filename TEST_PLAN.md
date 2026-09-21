@@ -2,6 +2,19 @@
 
 Use this after a clean build. Test one module at a time so a failure can be isolated quickly.
 
+## Current build smoke gate
+
+Run these first before the full regression:
+
+1. Startup: Banter's Tweak's loads with no exception and only the `BantersTweaks` mod folder is installed.
+2. Route Planner: drag the panel; test Auto-select with Rush OFF and Rush ON.
+3. Wishlist: favourite/unfavourite cards in the library and deck; confirm stars stay attached to the correct card; test ★ Wishlisted only.
+4. Deck X-Ray: drag it and confirm ★ Wishlist highlights only favourited cards.
+5. Relic Progress: test Brilliant Scarf through at least 0/5 -> 4/5.
+6. Panels: drag Ghost Planner, Turn Timeline, Choice Compare and Trading once.
+7. Telemetry: start a run and confirm `current_run.json` plus one file under `runs/` are created and contain a `RunStarted` event.
+8. Integration: confirm `user://banters_tweaks/integrations` is created automatically.
+
 ## 0. Startup / configuration
 
 - Build/install and confirm the game Mods folder contains BantersTweaks/BantersTweaks.dll and BantersTweaks.json.
@@ -12,6 +25,9 @@ Use this after a clean build. Test one module at a time so a failure can be isol
 - Confirm every implemented module has a setting.
 - Confirm Trading is OFF by default.
 - Toggle one harmless setting, restart, and confirm it persists.
+- Confirm Run Telemetry is enabled by default.
+- Start a run and confirm local telemetry creates `current_run.json` and a history file.
+- Confirm the integration manifest directory is created even when it is empty.
 
 ## 1. Turn Guard
 
