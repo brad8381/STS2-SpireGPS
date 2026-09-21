@@ -8,6 +8,8 @@ namespace SpireGPS.Features.MapLegend;
 
 internal static class MapLegendService
 {
+    private const float SafeTop = 96f;
+    private const float LegendSafeTop = 138f;
     private const string ControlsName = "BanterMapLegendControls";
     private static readonly FieldInfo? MapLegendField =
         AccessTools.Field(typeof(NMapScreen), "_mapLegend");
@@ -239,7 +241,7 @@ internal static class MapLegendService
 
         return new Vector2(
             Math.Clamp(basePosition.X, 8f, Math.Max(8f, _screen.Size.X - controlSize.X - 8f)),
-            Math.Clamp(basePosition.Y, 8f, Math.Max(8f, _screen.Size.Y - controlSize.Y - 8f)));
+            Math.Clamp(basePosition.Y, SafeTop, Math.Max(SafeTop, _screen.Size.Y - controlSize.Y - 8f)));
     }
 
     private static void ApplyVisibility()
@@ -268,7 +270,7 @@ internal static class MapLegendService
 
         return new Vector2(
             Math.Clamp(position.X, 0f, maxX),
-            Math.Clamp(position.Y, 0f, maxY));
+            Math.Clamp(position.Y, LegendSafeTop, Math.Max(LegendSafeTop, maxY)));
     }
 }
 
