@@ -2,7 +2,7 @@
 
 A modular quality-of-life tweak pack for **Slay the Spire 2**.
 
-The internal mod ID and DLL remain `SpireGPS` for compatibility, but the visible mod name is **Banter's Tweak's**.
+The installed mod ID and DLL are **`BantersTweaks` / `BantersTweaks.dll`**. The existing C# namespace remains `SpireGPS` internally to avoid unnecessary source/API churn.
 
 The idea is simple: surface useful information, prevent accidental inputs, and make planning easier without changing combat balance.
 
@@ -60,9 +60,9 @@ Available priorities include Elites, Treasure, Rest, Shop, Unknown, fewer Monste
 
 - **Auto-highlight suggested route** - automatically highlights the current suggested route.
 - **Auto-select next suggested node** - automatically selects/votes for the next node on the highlighted route.
-- **Confirm before auto-travel** - enabled by default. Shows a confirmation before selecting the node because selecting a map node can immediately cause travel in single-player.
+- **Rush mode** - when OFF, Auto-select asks for confirmation before selecting the next node. When ON, the next suggested node is selected immediately.
 
-Auto-select next node defaults OFF. Confirm before auto-travel defaults ON.
+Auto-select next node defaults OFF. Rush mode defaults OFF.
 
 ## Current development status
 
@@ -77,7 +77,7 @@ Implemented for the current v0.1 development branch:
 - Column sorting
 - Suggested-route weighting
 - Priority 1 / 2 / 3 route logic
-- Optional automatic next-node selection with confirmation
+- Optional automatic next-node selection with confirmation or Rush mode
 - Turn Guard
 - Potion Guard
 - Relic Progress fractions and ready indicators
@@ -111,3 +111,37 @@ Banter's Tweak's defaults to yielding when another QoL mod owns the same hook.
 - **Other End Turn mods** - if another Harmony Prefix or Transpiler owns `NEndTurnButton.CallReleaseLogic`, Banter's Turn Guard yields by default.
 
 This behaviour can be overridden with **Yield to Overlapping QoL Mods** in ModConfig.
+
+
+## Integration API
+
+Banter's Tweak's now includes an initial public integration layer for other mods and external tools.
+
+- API version: `1`
+- Static JSON schema: `banters.integration.v1`
+- Run telemetry schema: `banters.run.v1`
+- External manifests: `user://banters_tweaks/integrations/*.integration.json`
+- Runtime entry point: `BantersTweaks.Integration.BantersIntegration`
+
+The public API is deliberately informational: mods can register mechanics, card/relic tags, relationships, status providers, and run events. It does **not** expose gameplay execution commands.
+
+See [INTEGRATION.md](INTEGRATION.md) for the full contract and example JSON.
+
+## Local Run Telemetry
+
+Local run telemetry is enabled by default and currently records the run lifecycle foundation needed by Deck Evolution and Post-Mortem.
+
+Files:
+
+- `user://banters_tweaks/current_run.json`
+- `user://banters_tweaks/runs/<timestamp>-<run-id>.json`
+
+The latest 50 run files are retained. Telemetry is local-only and is not uploaded anywhere.
+
+The initial event set is intentionally small: `RunStarted`, `ActEntered`, and `RoomEntered`. Future modules will publish card, relic, shop, route, damage and decision events into the same history rather than creating separate tracking systems.
+
+## Attribution and Development References
+
+Route Planner contains implementation/design work derived from or inspired by STS2RouteSuggest. The upstream MIT notice is included in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Other repositories consulted only as API/compatibility references are listed in [DEVELOPMENT_REFERENCES.md](DEVELOPMENT_REFERENCES.md).
