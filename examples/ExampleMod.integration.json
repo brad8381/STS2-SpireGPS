@@ -1,0 +1,32 @@
+{
+  "schema": "banters.integration.v1",
+  "modId": "ExampleMod",
+  "displayName": "Example Mod",
+  "version": "1.0.0",
+  "mechanics": [
+    {
+      "id": "ExampleMod.Bleed",
+      "name": "Bleed",
+      "description": "Example custom mechanic."
+    }
+  ],
+  "cardTags": {
+    "EXAMPLE_MOD.BLOODY_STRIKE": [
+      "Bleed",
+      "Attack"
+    ]
+  },
+  "relicTags": {
+    "EXAMPLE_MOD.BLOOD_VIAL": [
+      "Bleed"
+    ]
+  },
+  "relationships": [
+    {
+      "sourceId": "EXAMPLE_MOD.BLOODY_STRIKE",
+      "targetId": "ExampleMod.Bleed",
+      "kind": "applies",
+      "description": "Applies Bleed."
+    }
+  ]
+}
