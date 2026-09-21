@@ -513,7 +513,6 @@ internal partial class GhostTurnPlannerPanel : PanelContainer
         };
         title.AddThemeFontSizeOverride("font_size", 15);
         top.AddChild(title);
-        PanelDrag.Attach(title, this);
 
         _toggle = new Button
         {
@@ -564,6 +563,8 @@ internal partial class GhostTurnPlannerPanel : PanelContainer
         _steps.AddThemeConstantOverride("separation", 3);
         scroll.AddChild(_steps);
 
+        PanelChrome.Attach("ghost_turn_planner", this, top, outer);
+
         GhostTurnPlannerService.Changed += Refresh;
         Refresh();
     }
@@ -575,8 +576,12 @@ internal partial class GhostTurnPlannerPanel : PanelContainer
 
     public override void _Process(double delta)
     {
-        Visible = SpireGpsSettings.GhostTurnPlannerEnabled;
-        if (!Visible)
+        bool shouldShow =
+            SpireGpsSettings.GhostTurnPlannerEnabled &&
+            !UiContext.DeckViewOpen;
+
+        Visible = shouldShow;
+        if (!SpireGpsSettings.GhostTurnPlannerEnabled)
             GhostTurnPlannerService.SetActive(false);
     }
 
