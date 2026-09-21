@@ -1,8 +1,11 @@
 using System.Reflection;
+using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using SpireGPS.Config;
+using SpireGPS.UI;
 
 namespace SpireGPS.Compatibility;
 
@@ -68,6 +71,130 @@ internal static class CompatibilityManager
 
         var target = AccessTools.Method(typeof(NMapDrawings), "CreateLineForPlayer");
         return target is not null && HasForeignPatch(target, "Drawing Palette");
+    }
+
+    internal static string WriteCompatibilityReport()
+    {
+        string directory = Path.Combine(OS.GetUserDataDir(), "banters_tweaks");
+        Directory.CreateDirectory(directory);
+
+        string path = Path.Combine(directory, "compatibility_report.txt");
+        string report = BuildCompatibilityReport();
+        File.WriteAllText(path, report);
+
+        MainFile.Logger.Info($"Compatibility report written to {path}");
+        SpireGpsToast.Show("Compatibility report written to Banter's Tweak's data folder.");
+        return path;
+    }
+
+    internal static string BuildCompatibilityReport()
+    {
+        var lines = new List<string>
+        {
+            "Banter's Tweak's - Compatibility Report",
+            $"Generated: {DateTimeOffset.Now:O}",
+            $"Yield to overlapping mods: {SpireGpsSettings.YieldToOverlappingMods}",
+            string.Empty,
+            "Loaded Mods"
+        };
+
+        var mods = ModManager.LoadedMods
+            .OrderBy(mod => mod.manifest?.name ?? mod.assembly?.GetName().Name ?? mod.pckName)
+            .ToArray();
+
+        if (mods.Length == 0)
+        {
+            lines.Add("  (none reported by ModManager)");
+        }
+        else
+        {
+            foreach (var mod in mods)
+            {
+                string name = mod.manifest?.name ?? mod.assembly?.GetName().Name ?? mod.pckName;
+                string version = mod.manifest?.version ?? "?";
+                string assembly = mod.assembly?.GetName().Name ?? "(no assembly)";
+                lines.Add($"  - {name} | v{version} | assembly={assembly} | loaded={mod.wasLoaded}");
+            }
+        }
+
+        lines.Add(string.Empty);
+        lines.Add("Overlap / Yield Checks");
+
+        AppendPatchReport(
+            lines,
+            "Turn Guard",
+            AccessTools.Method(typeof(NEndTurnButton), nameof(NEndTurnButton.CallReleaseLogic)),
+            inputOnly: true);
+
+        AppendPatchReport(
+            lines,
+            "Potion Guard",
+            AccessTools.Method(
+                typeof(MegaCrit.Sts2.Core.Nodes.Potions.NPotionPopup),
+                "OnDiscardButtonPressed"),
+            inputOnly: true);
+
+        bool routeSuggest = IsAssemblyLoaded("RouteSuggest", "STS2RouteSuggest");
+        lines.Add(
+            $"  - Route Planner: RouteSuggest detected={routeSuggest}; " +
+            $"Banter yields={SpireGpsSettings.YieldToOverlappingMods && routeSuggest}");
+
+        bool betterDrawing = IsAssemblyLoaded("BetterDrawing");
+        bool colorDraw = IsAssemblyLoaded("ColorDrawLib");
+        lines.Add(
+            $"  - Drawing Palette: BetterDrawing={betterDrawing}, ColorDrawLib={colorDraw}");
+
+        AppendPatchReport(
+            lines,
+            "Drawing Palette map-line hook",
+            AccessTools.Method(typeof(NMapDrawings), "CreateLineForPlayer"),
+            inputOnly: false);
+
+        lines.Add(string.Empty);
+        lines.Add("Interpretation");
+        lines.Add("  - 'Banter yields=True' means the Banter feature intentionally steps aside.");
+        lines.Add("  - Foreign Harmony owners identify mods patching the same game method.");
+        lines.Add("  - A shared patch does not automatically mean there is a conflict.");
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private static void AppendPatchReport(
+        List<string> lines,
+        string module,
+        MethodBase? target,
+        bool inputOnly)
+    {
+        if (target is null)
+        {
+            lines.Add($"  - {module}: target method not found");
+            return;
+        }
+
+        var info = Harmony.GetPatchInfo(target);
+        if (info is null)
+        {
+            lines.Add($"  - {module}: no Harmony patches detected");
+            return;
+        }
+
+        IEnumerable<Patch> patches = info.Prefixes.Concat(info.Transpilers);
+        if (!inputOnly)
+            patches = patches.Concat(info.Postfixes).Concat(info.Finalizers);
+
+        string[] owners = patches
+            .Select(patch => patch.owner)
+            .Where(owner => !string.Equals(owner, HarmonyId, StringComparison.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(owner => owner, StringComparer.Ordinal)
+            .ToArray();
+
+        bool yields = SpireGpsSettings.YieldToOverlappingMods && owners.Length > 0;
+
+        lines.Add(
+            owners.Length == 0
+                ? $"  - {module}: no foreign Harmony owners; Banter yields=False"
+                : $"  - {module}: foreign owners=[{string.Join(", ", owners)}]; Banter yields={yields}");
     }
 
     internal static bool IsAssemblyLoaded(params string[] names)
