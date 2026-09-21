@@ -198,14 +198,19 @@ internal partial class TurnTimelinePanel : PanelContainer
         box.AddThemeConstantOverride("separation", 5);
         AddChild(box);
 
+        var top = new HBoxContainer();
+        top.AddThemeConstantOverride("separation", 5);
+        box.AddChild(top);
+
         var title = new Label
         {
             Text = "Turn Timeline",
-            HorizontalAlignment = HorizontalAlignment.Center
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
         title.AddThemeFontSizeOverride("font_size", 14);
-        box.AddChild(title);
-        PanelDrag.Attach(title, this);
+        top.AddChild(title);
 
         _toggle = new Button
         {
@@ -230,11 +235,13 @@ internal partial class TurnTimelinePanel : PanelContainer
         };
         _body.AddThemeFontSizeOverride("font_size", 13);
         box.AddChild(_body);
+
+        PanelChrome.Attach("turn_timeline", this, top, box);
     }
 
     public override void _Process(double delta)
     {
-        if (!SpireGpsSettings.TurnTimelineEnabled)
+        if (!SpireGpsSettings.TurnTimelineEnabled || UiContext.DeckViewOpen)
         {
             Visible = false;
             return;
