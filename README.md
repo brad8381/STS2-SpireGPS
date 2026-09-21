@@ -138,10 +138,17 @@ Files:
 
 The latest 50 run files are retained. Telemetry is local-only and is not uploaded anywhere.
 
-The initial event set is intentionally small: `RunStarted`, `ActEntered`, and `RoomEntered`. Future modules will publish card, relic, shop, route, damage and decision events into the same history rather than creating separate tracking systems.
+The current lifecycle event set includes `RunStarted`, `ActEntered`, `RoomEntered`, `RunEnded`, and `RunClosed`. `RunEnded` also records a final player/run snapshot. Future modules will publish card, relic, shop, route, damage and decision events into the same history rather than creating separate tracking systems.
+
+At the end of a run, Banter's Tweak's can show a compact in-game **Run Recap** with outcome, act/floors, route breakdown, run time, HP/Gold, deck/relic counts and score when available.
 
 ## Attribution and Development References
 
 Route Planner contains implementation/design work derived from or inspired by STS2RouteSuggest. The upstream MIT notice is included in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Other repositories consulted only as API/compatibility references are listed in [DEVELOPMENT_REFERENCES.md](DEVELOPMENT_REFERENCES.md).
+
+
+## Settings layout
+
+When ModConfig is installed, Banter's Tweak's registers as **one top-level mod banner**. Inside that banner the individual Banter modules are listed A-Z as nested collapsible sections, so the Mods tab is not flooded with separate top-level registrations.
