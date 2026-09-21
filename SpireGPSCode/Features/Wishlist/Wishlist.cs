@@ -23,7 +23,8 @@ internal static class WishlistService
     private const string CardSection = "wishlist_cards_v2";
     private const string RelicSection = "wishlist_relics";
     private const string StarNodeName = "WishlistStar";
-    private const string CardStarNodeName = "WishlistCardBadge";
+    private const string LegacyCardStarNodeName = "WishlistCardBadge";
+    private const string CardStarNodeName = "WishlistCardStarV2";
     private const string LibraryFilterNodeName = "BantersWishlistOnly";
 
     internal static bool CardLibraryWishlistOnly { get; private set; }
@@ -74,18 +75,19 @@ internal static class WishlistService
     {
         // Remove the old free-floating label implementation if it exists.
         holder.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
-        holder.GetNodeOrNull<Label>(CardStarNodeName)?.QueueFree();
-        holder.GetNodeOrNull<PanelContainer>(CardStarNodeName)?.QueueFree();
+        holder.GetNodeOrNull<Label>(LegacyCardStarNodeName)?.QueueFree();
+        holder.GetNodeOrNull<PanelContainer>(LegacyCardStarNodeName)?.QueueFree();
 
         if (holder.CardNode is { } cardNode)
         {
             cardNode.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
-            cardNode.GetNodeOrNull<Label>(CardStarNodeName)?.QueueFree();
-            cardNode.GetNodeOrNull<PanelContainer>(CardStarNodeName)?.QueueFree();
+            cardNode.GetNodeOrNull<Label>(LegacyCardStarNodeName)?.QueueFree();
+            cardNode.GetNodeOrNull<PanelContainer>(LegacyCardStarNodeName)?.QueueFree();
 
             Control body = cardNode.Body;
             body.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
-            body.GetNodeOrNull<PanelContainer>(CardStarNodeName)?.QueueFree();
+            body.GetNodeOrNull<Label>(LegacyCardStarNodeName)?.QueueFree();
+            body.GetNodeOrNull<PanelContainer>(LegacyCardStarNodeName)?.QueueFree();
 
             SetCardStar(
                 body,
