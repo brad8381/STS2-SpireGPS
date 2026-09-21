@@ -195,7 +195,11 @@ internal static class ModConfigBridge
             Group("UiLayout", "UI Layout",
                 Button("uiExpandAllPanels", "All Banter panels", "Expand All", _ => PanelChrome.ExpandAll()),
                 Button("uiUnlockAllPanels", "All Banter panels", "Unlock All", _ => PanelChrome.UnlockAll()),
-                Button("uiResetLayout", "Banter panel positions", "Reset Layout", _ => PanelChrome.ResetAll())),
+                Button("uiResetLayout", "Banter panel positions", "Reset Layout", _ =>
+                {
+                    PanelChrome.ResetAll();
+                    MapLegendService.ResetPosition();
+                })),
 
             Group("Wishlist", "Wishlist",
                 Toggle("wishlistEnabled", "Enable Build Wishlist", true))
