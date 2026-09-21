@@ -139,6 +139,8 @@ When local telemetry is enabled, Banter's Tweak's writes:
 
 The most recent 50 run files are retained.
 
-The initial foundation records run start, act entry and room entry. Later Deck Evolution, Shop Planner and Post-Mortem features will add richer events using the same schema.
+The foundation records run start, act entry, room entry, and run end/close events. Later Deck Evolution, Shop Planner and Post-Mortem features will add richer events using the same schema.
+
+The resolved storage location is based on Godot's `OS.GetUserDataDir()`. In ModConfig, open **Banter's Tweak's — Run Telemetry** and use **Open Folder** to jump directly to the correct directory.
 
 All telemetry is local. Nothing in this system uploads run data.
