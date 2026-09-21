@@ -162,7 +162,27 @@ internal static class GhostTurnPlannerService
     }
 
     internal static bool TryAssignTarget(NCreature creature)
-        => TryAssignTarget(creature.Entity);
+    {
+        if (!IsAwaitingTarget || _pendingCard is null)
+            return false;
+
+        Creature entity = creature.Entity;
+        if (entity.CombatId is not uint combatId)
+            return false;
+
+        if (!TargetAllowed(_pendingCard, entity))
+        {
+            SpireGpsToast.Show($"Ghost Planner: invalid target for {_pendingCard.Title}.");
+            return true;
+        }
+
+        string label = BuildTargetLabel(creature);
+
+        var card = _pendingCard;
+        _pendingCard = null;
+        AddStep(card, combatId, label);
+        return true;
+    }
 
     internal static bool TryAssignTarget(Creature creature)
     {
@@ -179,13 +199,61 @@ internal static class GhostTurnPlannerService
         }
 
         string label = creature.IsEnemy
-            ? creature.Monster?.Title.GetFormattedText() ?? "Enemy"
+            ? $"Enemy · {creature.Monster?.Title.GetFormattedText() ?? "Unknown"}"
             : creature.Player?.Character.Title.GetFormattedText() ?? "Player";
 
         var card = _pendingCard;
         _pendingCard = null;
         AddStep(card, combatId, label);
         return true;
+    }
+
+    private static string BuildTargetLabel(NCreature target)
+    {
+        Creature entity = target.Entity;
+
+        if (!entity.IsEnemy)
+            return entity.Player?.Character.Title.GetFormattedText() ?? "Player";
+
+        string name = entity.Monster?.Title.GetFormattedText() ?? "Enemy";
+        int position = GetEnemyScreenPosition(target);
+
+        return position > 0
+            ? $"E{position} · {name}"
+            : $"Enemy · {name}";
+    }
+
+    private static int GetEnemyScreenPosition(NCreature target)
+    {
+        if (Engine.GetMainLoop() is not SceneTree tree)
+            return 0;
+
+        var enemies = new List<NCreature>();
+        CollectEnemyNodes(tree.Root, enemies);
+
+        var ordered = enemies
+            .Where(node =>
+                GodotObject.IsInstanceValid(node) &&
+                node.IsVisibleInTree() &&
+                node.Entity.IsEnemy &&
+                node.Entity.IsAlive)
+            .OrderBy(node => node.GlobalPosition.X)
+            .ThenBy(node => node.GlobalPosition.Y)
+            .ToArray();
+
+        int index = Array.IndexOf(ordered, target);
+        return index >= 0 ? index + 1 : 0;
+    }
+
+    private static void CollectEnemyNodes(Node root, List<NCreature> results)
+    {
+        foreach (Node child in root.GetChildren())
+        {
+            if (child is NCreature creature && creature.Entity.IsEnemy)
+                results.Add(creature);
+
+            CollectEnemyNodes(child, results);
+        }
     }
 
     internal static (int startingEnergy, int remainingEnergy, bool overBudget) CalculateEnergy()
