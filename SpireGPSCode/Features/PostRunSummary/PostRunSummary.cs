@@ -5,6 +5,7 @@ using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
 using SpireGPS.Config;
 using SpireGPS.Telemetry;
+using SpireGPS.UI;
 
 namespace SpireGPS.Features.PostRunSummary;
 
@@ -169,6 +170,12 @@ internal static class PostRunSummary
 
         close.Pressed += Close;
         dismiss.Pressed += Close;
+
+        PanelChrome.Attach(
+            "post_run_summary",
+            panel,
+            top,
+            outer);
 
         return panel;
     }
