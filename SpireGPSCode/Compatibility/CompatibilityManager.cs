@@ -83,7 +83,8 @@ internal static class CompatibilityManager
         File.WriteAllText(path, report);
 
         MainFile.Logger.Info($"Compatibility report written to {path}");
-        SpireGpsToast.Show("Compatibility report written to Banter's Tweak's data folder.");
+        SpireGpsToast.Show("Compatibility report written. Opening Banter's Tweak's data folder.");
+        OS.ShellShowInFileManager(path);
         return path;
     }
 
