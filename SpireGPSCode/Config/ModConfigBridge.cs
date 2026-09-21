@@ -161,6 +161,7 @@ internal static class ModConfigBridge
 
             Group("RunTelemetry", "Run Telemetry",
                 Toggle("runTelemetryEnabled", "Record Local Run Telemetry", true),
+                Toggle("postRunSummaryEnabled", "Show End-of-Run Quick Recap", true),
                 Button("openTelemetryFolder", "Local data folder", "Open Folder", _ => OpenTelemetryFolder())),
 
             Group("SynergyHints", "Synergy Hints",
@@ -404,6 +405,7 @@ internal static class ModConfigBridge
         Load("turnTimelineEnabled", true);
         Load("choiceCompareEnabled", true);
         Load("runTelemetryEnabled", true);
+        Load("postRunSummaryEnabled", true);
 
         Load("tradingEnabled", false);
         Load("tradingAllowCards", true);
