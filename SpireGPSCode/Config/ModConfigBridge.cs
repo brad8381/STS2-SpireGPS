@@ -97,8 +97,8 @@ internal static class ModConfigBridge
     {
         var priorityOptions = new[] { "None", "Elites ↑", "Treasure ↑", "Rest ↑", "Shop ↑", "Unknown ↑", "Monsters ↓", "Monsters ↑" };
 
-        // ModConfig collapses each registration as a unit. Register Banter's
-        // modules separately and alphabetically so the Mods tab stays usable.
+        // Keep module sections alphabetic. They are flattened into one
+        // Banter's Tweak's registration and decorated as nested accordions.
         return new[]
         {
             Group("ChoiceCompare", "Choice Compare",
