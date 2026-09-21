@@ -393,7 +393,6 @@ internal partial class ChoiceCompareLayer : CanvasLayer
         };
         title.AddThemeFontSizeOverride("font_size", 19);
         top.AddChild(title);
-        PanelDrag.Attach(title, _panel, () => _userPositioned = true);
 
         var clear = new Button
         {
@@ -406,6 +405,13 @@ internal partial class ChoiceCompareLayer : CanvasLayer
         _columns = new HBoxContainer();
         _columns.AddThemeConstantOverride("separation", 8);
         outer.AddChild(_columns);
+
+        PanelChrome.Attach(
+            "choice_compare",
+            _panel,
+            top,
+            outer,
+            () => _userPositioned = true);
 
         AddChild(_panel);
 
