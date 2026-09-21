@@ -54,8 +54,9 @@ internal static class PanelDrag
 
         float minX = visible.Position.X;
         float minY = visible.Position.Y;
-        float maxX = visible.End.X - Math.Max(40f, size.X);
-        float maxY = visible.End.Y - Math.Max(30f, size.Y);
+        Vector2 visibleEnd = visible.Position + visible.Size;
+        float maxX = visibleEnd.X - Math.Max(40f, size.X);
+        float maxY = visibleEnd.Y - Math.Max(30f, size.Y);
 
         panel.GlobalPosition = new Vector2(
             Math.Clamp(position.X, minX, Math.Max(minX, maxX)),
