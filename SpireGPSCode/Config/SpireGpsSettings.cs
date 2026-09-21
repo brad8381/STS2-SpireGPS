@@ -64,6 +64,7 @@ internal static class SpireGpsSettings
     internal static bool ChoiceCompareEnabled { get; set; } = true;
 
     internal static bool RunTelemetryEnabled { get; set; } = true;
+    internal static bool PostRunSummaryEnabled { get; set; } = true;
 
     // Trading changes gameplay rather than only presenting information, so it
     // deliberately defaults off.
@@ -142,6 +143,7 @@ internal static class SpireGpsSettings
             case "choiceCompareEnabled": ChoiceCompareEnabled = Convert.ToBoolean(value); break;
 
             case "runTelemetryEnabled": RunTelemetryEnabled = Convert.ToBoolean(value); break;
+            case "postRunSummaryEnabled": PostRunSummaryEnabled = Convert.ToBoolean(value); break;
 
             case "tradingEnabled": TradingEnabled = Convert.ToBoolean(value); break;
             case "tradingAllowCards": TradingAllowCards = Convert.ToBoolean(value); break;
