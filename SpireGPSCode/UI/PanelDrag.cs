@@ -39,20 +39,26 @@ internal static class PanelDrag
                 if (!dragging || inputEvent is not InputEventMouseMotion motion)
                     return;
 
-                panel.Position += motion.Relative;
+                panel.GlobalPosition += motion.Relative;
                 ClampToViewport(panel);
                 onMoved?.Invoke();
                 handle.AcceptEvent();
             }));
     }
 
-    private static void ClampToViewport(Control panel)
+    internal static void ClampToViewport(Control panel)
     {
-        Vector2 viewport = panel.GetViewport().GetVisibleRect().Size;
+        Rect2 visible = panel.GetViewport().GetVisibleRect();
         Vector2 size = panel.Size;
+        Vector2 position = panel.GlobalPosition;
 
-        panel.Position = new Vector2(
-            Math.Clamp(panel.Position.X, 0f, Math.Max(0f, viewport.X - Math.Max(40f, size.X))),
-            Math.Clamp(panel.Position.Y, 0f, Math.Max(0f, viewport.Y - Math.Max(30f, size.Y))));
+        float minX = visible.Position.X;
+        float minY = visible.Position.Y;
+        float maxX = visible.End.X - Math.Max(40f, size.X);
+        float maxY = visible.End.Y - Math.Max(30f, size.Y);
+
+        panel.GlobalPosition = new Vector2(
+            Math.Clamp(position.X, minX, Math.Max(minX, maxX)),
+            Math.Clamp(position.Y, minY, Math.Max(minY, maxY)));
     }
 }
