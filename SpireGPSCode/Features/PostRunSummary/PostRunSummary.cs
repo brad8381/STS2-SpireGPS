@@ -30,7 +30,7 @@ internal static class PostRunSummary
                 {
                     Name = LayerName,
                     Layer = 250,
-                    ProcessMode = ProcessModeEnum.Always
+                    ProcessMode = Node.ProcessModeEnum.Always
                 };
 
                 var panel = BuildPanel(run, isVictory, isAbandoned);
