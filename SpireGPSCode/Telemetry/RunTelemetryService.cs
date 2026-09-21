@@ -102,7 +102,10 @@ internal static class RunTelemetryService
             EventType = eventType,
             Data = data is null
                 ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                : new Dictionary<string, string>(data, StringComparer.OrdinalIgnoreCase)
+                : data.ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value,
+                    StringComparer.OrdinalIgnoreCase)
         };
 
         _current.Events.Add(item);
