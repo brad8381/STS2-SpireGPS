@@ -469,11 +469,11 @@ internal partial class GhostTurnPlannerPanel : PanelContainer
         AnchorRight = 1f;
         AnchorTop = 0.36f;
         AnchorBottom = 0.36f;
-        OffsetLeft = -430f;
+        OffsetLeft = -410f;
         OffsetRight = -18f;
-        OffsetTop = -90f;
-        OffsetBottom = 250f;
-        CustomMinimumSize = new Vector2(400f, 220f);
+        OffsetTop = -65f;
+        OffsetBottom = 195f;
+        CustomMinimumSize = new Vector2(380f, 180f);
     }
 
     public override void _Ready()
@@ -551,7 +551,7 @@ internal partial class GhostTurnPlannerPanel : PanelContainer
 
         var scroll = new ScrollContainer
         {
-            CustomMinimumSize = new Vector2(380f, 150f),
+            CustomMinimumSize = new Vector2(360f, 110f),
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
         outer.AddChild(scroll);
