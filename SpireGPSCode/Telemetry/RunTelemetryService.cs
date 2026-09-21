@@ -3,6 +3,7 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Runs;
 using SpireGPS.Config;
+using SpireGPS.Features.PostRunSummary;
 
 namespace SpireGPS.Telemetry;
 
@@ -230,8 +231,14 @@ internal static class RunTelemetryService
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.OnEnded))]
 internal static class RunTelemetryEndedPatch
 {
-    private static void Postfix(RunManager __instance, bool isVictory)
-        => RunTelemetryService.RecordRunEnded(isVictory, __instance.IsAbandoned);
+    private static void Postfix(
+        RunManager __instance,
+        bool isVictory,
+        MegaCrit.Sts2.Core.Saves.SerializableRun __result)
+    {
+        RunTelemetryService.RecordRunEnded(isVictory, __instance.IsAbandoned);
+        PostRunSummary.Show(__result, isVictory, __instance.IsAbandoned);
+    }
 }
 
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.CleanUp))]
