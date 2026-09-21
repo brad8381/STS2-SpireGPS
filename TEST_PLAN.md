@@ -12,8 +12,8 @@ Run these first before the full regression:
 4. Deck X-Ray: drag it and confirm ★ Wishlist highlights only favourited cards.
 5. Relic Progress: test Brilliant Scarf through at least 0/5 -> 4/5.
 6. Panels: drag Ghost Planner, Turn Timeline, Choice Compare and Trading once.
-7. Telemetry: start a run and confirm `current_run.json` plus one file under `runs/` are created and contain a `RunStarted` event.
-8. Integration: confirm `user://banters_tweaks/integrations` is created automatically.
+7. Telemetry: start a run and confirm `current_run.json` plus one file under `runs/` are created and contain a `RunStarted` event. End/die the run and confirm a single `RunEnded` event.
+8. Integration: use Run Telemetry -> Open Folder and confirm the `integrations` directory exists.
 
 ## 0. Startup / configuration
 
@@ -21,7 +21,8 @@ Run these first before the full regression:
 - Confirm the legacy SpireGPS mod folder is removed.
 - Launch with Banter's Tweak's enabled.
 - Confirm no startup exception.
-- If ModConfig is installed, open Settings -> Mods -> Banter's Tweak's.
+- If ModConfig is installed, open Settings -> Mods.
+- Confirm Banter's modules are separate collapsible groups and appear A-Z.
 - Confirm every implemented module has a setting.
 - Confirm Trading is OFF by default.
 - Toggle one harmless setting, restart, and confirm it persists.
@@ -58,7 +59,11 @@ Run these first before the full regression:
 - Auto-select next node:
   - Rush mode OFF: confirmation appears before travel
   - Rush mode ON: next highlighted node is selected directly with no confirmation
-- Drag the Route Planner by its title and confirm it stays where moved while the map remains open
+- Use the visible :: handle to drag the Route Planner and confirm it stays where moved while the map remains open.
+- Lock the Route Planner and confirm dragging is blocked; unlock and confirm dragging returns.
+- Minimize/expand the Route Planner from its top edge controls.
+- Confirm the Route Planner uses rounded panel corners.
+- Turn Auto-select OFF and confirm Rush is unchecked and disabled.
 
 ## 4. Drawing Palette
 
@@ -107,7 +112,7 @@ Test several supported counter relics, including Brilliant Scarf.
 - Relic collection: right-click a visible relic to add/remove Wishlist.
 - Restart and confirm Wishlist persists.
 - Matching reward/shop card or relic shows gold star.
-- Wishlist stars sit in the same top-right position on cards in compendium and deck view.
+- Wishlist stars appear as an attached badge on the bottom-right of the correct card in compendium and deck view.
 - Left-click inspect remains normal.
 
 ## 8. Synergy Hints
@@ -138,7 +143,9 @@ Test several supported counter relics, including Brilliant Scarf.
 - X-cost uses remaining planned energy.
 - Random/unknown outcomes remain unknown rather than consuming RNG.
 - Disable planning and confirm normal card play is untouched.
-- Drag Ghost Planner by its title and confirm it moves.
+- Drag Ghost Planner from its visible :: handle and confirm it moves.
+- Lock/unlock and minimize/expand controls work.
+- Open the deck view during combat: Ghost Planner hides until the deck closes.
 - Multiplayer:
   - Share ON publishes plan summary
   - Share OFF stops publishing
@@ -152,7 +159,8 @@ Test several supported counter relics, including Brilliant Scarf.
 - Click Type, Cost, State, Keyword, Utility and ★ Wishlist filters.
 - ★ Wishlist highlights only favourited cards.
 - Matching cards stay full opacity; nonmatches dim.
-- Drag Deck X-Ray by its title and confirm the panel moves.
+- Drag Deck X-Ray from its visible :: handle and confirm the panel moves.
+- Lock/unlock and minimize/expand controls work.
 - Click selected filter again / Clear Highlight to restore deck.
 - Disable module while deck is open and confirm every card returns to normal opacity.
 
@@ -174,7 +182,9 @@ Test several supported counter relics, including Brilliant Scarf.
 - Attack intents should appear as known incoming damage.
 - Random/unknown effects must not be presented as certain.
 - Timeline should update as combat state changes.
-- Drag Turn Timeline by its title and confirm it moves.
+- Drag Turn Timeline from its visible :: handle and confirm the whole handle is usable.
+- Lock/unlock and minimize/expand controls work.
+- Open the deck view during combat: Turn Timeline hides until the deck closes.
 
 ## 14. Choice Compare
 
@@ -187,7 +197,8 @@ Test several supported counter relics, including Brilliant Scarf.
 - Fourth item should be rejected until one is removed.
 - Leaving reward/shop screen should clear the tray.
 - Normal left-click/select behavior remains untouched.
-- Drag Choice Compare by its title and confirm it moves.
+- Drag Choice Compare from its visible :: handle and confirm it moves.
+- Lock/unlock and minimize/expand controls work.
 
 ## 15. Trading
 
@@ -226,7 +237,8 @@ Gifting:
 - acceptance is still required.
 
 Synchronization:
-- Drag the Trading panel by its title and confirm it moves.
+- Drag the Trading panel from its visible :: handle and confirm it moves.
+- Lock/unlock and minimize/expand controls work.
 - target receives Accept / Decline.
 - decline changes nothing.
 - accepted exchange occurs once.
