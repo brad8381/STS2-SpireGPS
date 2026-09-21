@@ -1,5 +1,6 @@
 using System.Reflection;
 using Godot;
+using SpireGPS.Compatibility;
 using SpireGPS.Features.DrawingPalette;
 using SpireGPS.Features.MapLegend;
 using SpireGPS.Features.RelicProgress;
@@ -105,7 +106,8 @@ internal static class ModConfigBridge
                 Toggle("choiceCompareEnabled", "Enable Choice Compare", true)),
 
             Group("Compatibility", "Compatibility",
-                Toggle("yieldToOverlappingMods", "Yield to Overlapping QoL Mods", true)),
+                Toggle("yieldToOverlappingMods", "Yield to Overlapping QoL Mods", true),
+                Button("writeCompatibilityReport", "QoL overlap diagnostics", "Write Report", _ => WriteCompatibilityReport())),
 
             Group("DeckXRay", "Deck X-Ray",
                 Toggle("deckXRayEnabled", "Enable Deck X-Ray", true)),
@@ -281,6 +283,19 @@ internal static class ModConfigBridge
         Set(e, "ButtonText", buttonText);
         Set(e, "OnChanged", onChanged);
     });
+
+    private static void WriteCompatibilityReport()
+    {
+        try
+        {
+            string path = CompatibilityManager.WriteCompatibilityReport();
+            MainFile.Logger.Info($"Compatibility diagnostics available at {path}");
+        }
+        catch (Exception ex)
+        {
+            MainFile.Logger.Warn($"Could not write compatibility report: {ex.Message}");
+        }
+    }
 
     private static void OpenTelemetryFolder()
     {
