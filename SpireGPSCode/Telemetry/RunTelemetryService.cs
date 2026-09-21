@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Godot;
+using HarmonyLib;
 using MegaCrit.Sts2.Core.Runs;
 using SpireGPS.Config;
 
@@ -7,9 +8,7 @@ namespace SpireGPS.Telemetry;
 
 internal static class RunTelemetryService
 {
-    private const string BaseDirectory = "user://banters_tweaks";
-    private const string RunsDirectory = "user://banters_tweaks/runs";
-    private const string CurrentRunPath = "user://banters_tweaks/current_run.json";
+    private const string FolderName = "banters_tweaks";
     private const int RetainedRuns = 50;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -21,13 +20,19 @@ internal static class RunTelemetryService
     private static RunTelemetryDocument? _current;
     private static string? _historyPath;
     private static long _sequence;
+    private static bool _ended;
+
+    private static string BaseDirectory => Path.Combine(OS.GetUserDataDir(), FolderName);
+    private static string RunsDirectory => Path.Combine(BaseDirectory, "runs");
+    private static string CurrentRunPath => Path.Combine(BaseDirectory, "current_run.json");
 
     internal static void Initialize()
     {
         try
         {
-            Directory.CreateDirectory(ProjectSettings.GlobalizePath(BaseDirectory));
-            Directory.CreateDirectory(ProjectSettings.GlobalizePath(RunsDirectory));
+            Directory.CreateDirectory(BaseDirectory);
+            Directory.CreateDirectory(RunsDirectory);
+            MainFile.Logger.Info($"Banter data directory: {BaseDirectory}");
             PruneHistory();
         }
         catch (Exception ex)
@@ -43,6 +48,7 @@ internal static class RunTelemetryService
             _current = null;
             _historyPath = null;
             _sequence = 0;
+            _ended = false;
             return;
         }
 
@@ -50,6 +56,7 @@ internal static class RunTelemetryService
         string runId = Guid.NewGuid().ToString("N");
 
         _sequence = 0;
+        _ended = false;
         _current = new RunTelemetryDocument
         {
             RunId = runId,
@@ -58,9 +65,7 @@ internal static class RunTelemetryService
         };
 
         string fileName = $"{started:yyyyMMdd-HHmmss}-{runId}.json";
-        _historyPath = Path.Combine(
-            ProjectSettings.GlobalizePath(RunsDirectory),
-            fileName);
+        _historyPath = Path.Combine(RunsDirectory, fileName);
 
         Publish(
             MainFile.ModId,
@@ -113,7 +118,35 @@ internal static class RunTelemetryService
     }
 
     internal static string GetAbsoluteBaseDirectory()
-        => ProjectSettings.GlobalizePath(BaseDirectory);
+        => BaseDirectory;
+
+    internal static void RecordRunEnded(bool isVictory, bool isAbandoned)
+    {
+        if (_ended || _current is null)
+            return;
+
+        _ended = true;
+        Publish(
+            MainFile.ModId,
+            "RunEnded",
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["victory"] = isVictory.ToString(),
+                ["abandoned"] = isAbandoned.ToString()
+            });
+    }
+
+    internal static void RecordRunClosed()
+    {
+        if (_ended || _current is null)
+            return;
+
+        _ended = true;
+        Publish(
+            MainFile.ModId,
+            "RunClosed",
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+    }
 
     private static Dictionary<string, string> BuildRunStateData(RunState state)
     {
@@ -142,7 +175,7 @@ internal static class RunTelemetryService
         try
         {
             string json = JsonSerializer.Serialize(_current, JsonOptions);
-            AtomicWrite(ProjectSettings.GlobalizePath(CurrentRunPath), json);
+            AtomicWrite(CurrentRunPath, json);
             AtomicWrite(_historyPath, json);
         }
         catch (Exception ex)
@@ -166,7 +199,7 @@ internal static class RunTelemetryService
     {
         try
         {
-            string directory = ProjectSettings.GlobalizePath(RunsDirectory);
+            string directory = RunsDirectory;
             if (!Directory.Exists(directory))
                 return;
 
@@ -191,4 +224,19 @@ internal static class RunTelemetryService
             MainFile.Logger.Warn($"Run telemetry history pruning failed: {ex.Message}");
         }
     }
+}
+
+
+[HarmonyPatch(typeof(RunManager), nameof(RunManager.OnEnded))]
+internal static class RunTelemetryEndedPatch
+{
+    private static void Postfix(RunManager __instance, bool isVictory)
+        => RunTelemetryService.RecordRunEnded(isVictory, __instance.IsAbandoned);
+}
+
+[HarmonyPatch(typeof(RunManager), nameof(RunManager.CleanUp))]
+internal static class RunTelemetryCleanupPatch
+{
+    private static void Prefix()
+        => RunTelemetryService.RecordRunClosed();
 }
