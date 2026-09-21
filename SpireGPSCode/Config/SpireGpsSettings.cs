@@ -87,8 +87,14 @@ internal static class SpireGpsSettings
             case "sortDescending": SortDescending = Convert.ToBoolean(value); break;
             case "preferredRouteEnabled": PreferredRouteEnabled = Convert.ToBoolean(value); break;
             case "autoHighlightPreferredRoute": AutoHighlightPreferredRoute = Convert.ToBoolean(value); break;
-            case "routeAutoSelectNextNode": AutoSelectNextNode = Convert.ToBoolean(value); break;
-            case "routeRushAutoTravel": RushAutoTravel = Convert.ToBoolean(value); break;
+            case "routeAutoSelectNextNode":
+                AutoSelectNextNode = Convert.ToBoolean(value);
+                if (!AutoSelectNextNode)
+                    RushAutoTravel = false;
+                break;
+            case "routeRushAutoTravel":
+                RushAutoTravel = AutoSelectNextNode && Convert.ToBoolean(value);
+                break;
 
             case "routePrioritiesEnabled": RoutePrioritiesEnabled = Convert.ToBoolean(value); break;
             case "routePriority1": RoutePriority1 = Convert.ToString(value) ?? "Elites ↑"; break;
