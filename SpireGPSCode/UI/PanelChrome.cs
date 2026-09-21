@@ -16,11 +16,13 @@ internal static class PanelChrome
     {
         bool locked = LocalPreferences.GetBool(Section, id + ".locked", false);
         bool minimized = LocalPreferences.GetBool(Section, id + ".minimized", false);
-        bool hasPosition = LocalPreferences.GetBool(Section, id + ".has_position", false);
+        // v2 resets the first layout experiment, which stored anchored local
+        // positions and could leave panels pinned under the top bar.
+        bool hasPosition = LocalPreferences.GetBool(Section, id + ".has_position_v2", false);
         Vector2 savedPosition = LocalPreferences.GetVector2(
             Section,
-            id + ".position",
-            panel.Position);
+            id + ".position_v2",
+            panel.GlobalPosition);
 
         var moveHandle = new Label
         {
@@ -62,8 +64,6 @@ internal static class PanelChrome
             .ToArray();
 
         var previousVisibility = new Dictionary<CanvasItem, bool>();
-        Vector2 normalMinimum = panel.CustomMinimumSize;
-        Vector2 normalSize = panel.Size;
 
         void ApplyMinimized()
         {
@@ -75,12 +75,6 @@ internal static class PanelChrome
                     previousVisibility[item] = item.Visible;
                     item.Visible = false;
                 }
-
-                normalSize = panel.Size;
-                panel.CustomMinimumSize = new Vector2(normalMinimum.X, 0f);
-                panel.Size = new Vector2(
-                    Math.Max(panel.Size.X, Math.Max(120f, normalMinimum.X)),
-                    Math.Max(34f, header.Size.Y + 8f));
             }
             else
             {
@@ -90,14 +84,11 @@ internal static class PanelChrome
                         ? wasVisible
                         : true;
                 }
-
-                panel.CustomMinimumSize = normalMinimum;
-                if (normalSize.Y > 0f)
-                    panel.Size = normalSize;
             }
 
             minimizeButton.Text = minimized ? "+" : "−";
             minimizeButton.TooltipText = minimized ? "Expand panel." : "Minimize panel.";
+            Callable.From(panel.ResetSize).CallDeferred();
         }
 
         lockButton.Pressed += () =>
@@ -122,20 +113,18 @@ internal static class PanelChrome
             panel,
             () =>
             {
-                LocalPreferences.Set(Section, id + ".has_position", true);
-                LocalPreferences.Set(Section, id + ".position", panel.Position);
+                LocalPreferences.Set(Section, id + ".has_position_v2", true);
+                LocalPreferences.Set(Section, id + ".position_v2", panel.GlobalPosition);
                 onMoved?.Invoke();
             },
             () => !locked);
 
         Callable.From(() =>
         {
-            normalMinimum = panel.CustomMinimumSize;
-            normalSize = panel.Size;
-
             if (hasPosition)
             {
-                panel.Position = savedPosition;
+                panel.GlobalPosition = savedPosition;
+                PanelDrag.ClampToViewport(panel);
                 onMoved?.Invoke();
             }
 
