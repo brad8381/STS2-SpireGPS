@@ -70,18 +70,16 @@ internal static class ModConfigBridge
                 .OrderByDescending(m => m.GetParameters().Length)
                 .First();
 
-            foreach (var group in BuildGroups())
-            {
-                Array entries = ToTypedArray(group.Entries);
-                var names = new Dictionary<string, string> { ["en"] = group.DisplayName };
+            Array entries = ToTypedArray(BuildSingleEntries());
+            var names = new Dictionary<string, string> { ["en"] = MainFile.DisplayName };
 
-                if (register.GetParameters().Length == 4)
-                    register.Invoke(null, new object[] { group.ModId, group.DisplayName, names, entries });
-                else
-                    register.Invoke(null, new object[] { group.ModId, group.DisplayName, entries });
-            }
+            if (register.GetParameters().Length == 4)
+                register.Invoke(null, new object[] { MainFile.ModId, MainFile.DisplayName, names, entries });
+            else
+                register.Invoke(null, new object[] { MainFile.ModId, MainFile.DisplayName, entries });
 
             _registered = true;
+            ModConfigAccordion.EnsureInstalled();
             LoadSavedValues();
             MainFile.Logger.Info("Registered Banter's Tweak's settings with ModConfig.");
             return true;
@@ -198,8 +196,21 @@ internal static class ModConfigBridge
     private static ConfigGroup Group(string suffix, string name, params object[] entries)
         => new(
             $"{MainFile.ModId}.{suffix}",
-            $"Banter's Tweak's — {name}",
+            name,
             entries.ToList());
+
+    private static IReadOnlyList<object> BuildSingleEntries()
+    {
+        var entries = new List<object>();
+
+        foreach (var group in BuildGroups())
+        {
+            entries.Add(Header(group.DisplayName));
+            entries.AddRange(group.Entries);
+        }
+
+        return entries;
+    }
 
     private static Array ToTypedArray(IReadOnlyList<object> entries)
     {
@@ -292,7 +303,7 @@ internal static class ModConfigBridge
         try
         {
             _apiType.GetMethod("SetValue", BindingFlags.Public | BindingFlags.Static)
-                ?.Invoke(null, new object[] { RegistrationIdForKey(key), key, value });
+                ?.Invoke(null, new object[] { MainFile.ModId, key, value });
         }
         catch (Exception ex)
         {
@@ -333,36 +344,6 @@ internal static class ModConfigBridge
 
     private static void Set(object obj, string property, object value)
         => obj.GetType().GetProperty(property)?.SetValue(obj, value);
-
-    private static string RegistrationIdForKey(string key)
-    {
-        string suffix = key switch
-        {
-            "yieldToOverlappingMods" => "Compatibility",
-            _ when key.StartsWith("route", StringComparison.OrdinalIgnoreCase) => "RoutePlanner",
-            _ when key.EndsWith("Weight", StringComparison.OrdinalIgnoreCase) => "RoutePlanner",
-            "highlightSelectedRoute" or "fadeUnselectedRoutes" or "defaultRouteSort" or
-                "sortDescending" or "preferredRouteEnabled" or "autoHighlightPreferredRoute" => "RoutePlanner",
-            _ when key.StartsWith("turnGuard", StringComparison.OrdinalIgnoreCase) => "TurnGuard",
-            _ when key.StartsWith("potionGuard", StringComparison.OrdinalIgnoreCase) => "PotionGuard",
-            _ when key.StartsWith("relicTracker", StringComparison.OrdinalIgnoreCase) => "RelicProgress",
-            _ when key.StartsWith("drawingPalette", StringComparison.OrdinalIgnoreCase) => "DrawingPalette",
-            _ when key.StartsWith("mapLegend", StringComparison.OrdinalIgnoreCase) => "MapLegend",
-            _ when key.StartsWith("synergyHints", StringComparison.OrdinalIgnoreCase) => "SynergyHints",
-            _ when key.StartsWith("wishlist", StringComparison.OrdinalIgnoreCase) => "Wishlist",
-            _ when key.StartsWith("multiplayerPings", StringComparison.OrdinalIgnoreCase) => "MultiplayerPings",
-            _ when key.StartsWith("ghostTurnPlanner", StringComparison.OrdinalIgnoreCase) => "GhostTurnPlanner",
-            _ when key.StartsWith("deckXRay", StringComparison.OrdinalIgnoreCase) => "DeckXRay",
-            _ when key.StartsWith("triggerInspector", StringComparison.OrdinalIgnoreCase) => "TriggerInspector",
-            _ when key.StartsWith("turnTimeline", StringComparison.OrdinalIgnoreCase) => "TurnTimeline",
-            _ when key.StartsWith("choiceCompare", StringComparison.OrdinalIgnoreCase) => "ChoiceCompare",
-            _ when key.StartsWith("runTelemetry", StringComparison.OrdinalIgnoreCase) => "RunTelemetry",
-            _ when key.StartsWith("trading", StringComparison.OrdinalIgnoreCase) => "Trading",
-            _ => "Compatibility"
-        };
-
-        return $"{MainFile.ModId}.{suffix}";
-    }
 
     private static void LoadSavedValues()
     {
@@ -440,7 +421,7 @@ internal static class ModConfigBridge
             var getValue = _apiType!.GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .First(m => m.Name == "GetValue" && m.IsGenericMethodDefinition)
                 .MakeGenericMethod(typeof(T));
-            var result = getValue.Invoke(null, new object[] { RegistrationIdForKey(key), key });
+            var result = getValue.Invoke(null, new object[] { MainFile.ModId, key });
             SpireGpsSettings.Apply(key, result ?? fallback!);
         }
         catch
