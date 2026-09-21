@@ -1,5 +1,6 @@
 using Godot;
 using MegaCrit.Sts2.Core.Context;
+using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
 using SpireGPS.Config;
@@ -179,10 +180,19 @@ internal static class PostRunSummary
         int acts = Math.Max(1, run.CurrentActIndex + 1);
         TimeSpan duration = TimeSpan.FromSeconds(Math.Max(0L, run.RunTime));
 
+        var history = run.MapPointHistory.SelectMany(act => act).ToArray();
+        int monsters = history.Count(point => point.MapPointType == MapPointType.Monster);
+        int elites = history.Count(point => point.MapPointType == MapPointType.Elite);
+        int shops = history.Count(point => point.MapPointType == MapPointType.Shop);
+        int rests = history.Count(point => point.MapPointType == MapPointType.RestSite);
+        int treasures = history.Count(point => point.MapPointType == MapPointType.Treasure);
+        int unknowns = history.Count(point => point.MapPointType == MapPointType.Unknown);
+
         var lines = new List<string>
         {
             $"Act reached: {acts}    Floors visited: {floors}    Ascension: {run.Ascension}",
-            $"Run time: {FormatDuration(duration)}    Events seen: {run.EventsSeen.Count}"
+            $"Run time: {FormatDuration(duration)}    Events seen: {run.EventsSeen.Count}",
+            $"Path: {monsters} fights • {elites} elites • {unknowns} ? • {shops} shops • {rests} rests • {treasures} treasures"
         };
 
         if (player is not null)
