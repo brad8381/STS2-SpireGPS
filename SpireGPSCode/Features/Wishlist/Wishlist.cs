@@ -21,6 +21,7 @@ internal static class WishlistService
     private const string CardSection = "wishlist_cards";
     private const string RelicSection = "wishlist_relics";
     private const string StarNodeName = "WishlistStar";
+    private const string CardStarNodeName = "WishlistCardBadge";
     private const string LibraryFilterNodeName = "BantersWishlistOnly";
 
     internal static bool CardLibraryWishlistOnly { get; private set; }
@@ -64,14 +65,12 @@ internal static class WishlistService
 
     internal static void RefreshCardHolder(NGridCardHolder holder)
     {
-        var legacy = holder.GetNodeOrNull<Label>(StarNodeName);
-        Control owner = holder.CardNode is Control cardNode ? cardNode : holder;
-
-        if (!ReferenceEquals(owner, holder) && legacy is not null)
-            legacy.QueueFree();
+        // Remove the old free-floating label implementation if it exists.
+        holder.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
+        holder.CardNode?.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
 
         SetCardStar(
-            owner,
+            holder,
             SpireGpsSettings.WishlistEnabled && IsCardWishlisted(holder.CardModel));
     }
 
@@ -263,34 +262,63 @@ internal static class WishlistService
 
     private static void SetCardStar(Control owner, bool visible)
     {
-        var star = owner.GetNodeOrNull<Label>(StarNodeName);
-        if (star is null)
+        var badge = owner.GetNodeOrNull<PanelContainer>(CardStarNodeName);
+        if (badge is null)
         {
-            star = new Label
+            badge = new PanelContainer
             {
-                Name = StarNodeName,
+                Name = CardStarNodeName,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                ZIndex = 140
+            };
+
+            var style = new StyleBoxFlat
+            {
+                BgColor = new Color(0.055f, 0.065f, 0.075f, 0.92f),
+                BorderColor = new Color("#F6C744"),
+                BorderWidthLeft = 1,
+                BorderWidthTop = 1,
+                BorderWidthRight = 1,
+                BorderWidthBottom = 1,
+                CornerRadiusTopLeft = 9,
+                CornerRadiusTopRight = 9,
+                CornerRadiusBottomLeft = 9,
+                CornerRadiusBottomRight = 9,
+                ContentMarginLeft = 3,
+                ContentMarginRight = 3,
+                ContentMarginTop = 1,
+                ContentMarginBottom = 2
+            };
+            badge.AddThemeStyleboxOverride("panel", style);
+
+            var star = new Label
+            {
                 Text = "★",
                 MouseFilter = Control.MouseFilterEnum.Ignore,
-                ZIndex = 100,
-                HorizontalAlignment = HorizontalAlignment.Center
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
             };
-            star.AddThemeFontSizeOverride("font_size", 30);
+            star.AddThemeFontSizeOverride("font_size", 23);
             star.AddThemeColorOverride("font_color", new Color("#F6C744"));
-            star.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.9f));
-            star.AddThemeConstantOverride("shadow_offset_x", 2);
-            star.AddThemeConstantOverride("shadow_offset_y", 2);
-            owner.AddChild(star);
+            star.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.85f));
+            star.AddThemeConstantOverride("shadow_offset_x", 1);
+            star.AddThemeConstantOverride("shadow_offset_y", 1);
+            badge.AddChild(star);
+            owner.AddChild(badge);
         }
 
-        star.AnchorLeft = 1f;
-        star.AnchorRight = 1f;
-        star.AnchorTop = 0f;
-        star.AnchorBottom = 0f;
-        star.OffsetLeft = -50f;
-        star.OffsetRight = -6f;
-        star.OffsetTop = 8f;
-        star.OffsetBottom = 48f;
-        star.Visible = visible;
+        // Anchor to the grid holder rather than the animated card node. This
+        // keeps the badge attached to the bottom-right of each individual card
+        // across the library and deck layouts.
+        badge.AnchorLeft = 1f;
+        badge.AnchorRight = 1f;
+        badge.AnchorTop = 1f;
+        badge.AnchorBottom = 1f;
+        badge.OffsetLeft = -42f;
+        badge.OffsetRight = -7f;
+        badge.OffsetTop = -43f;
+        badge.OffsetBottom = -8f;
+        badge.Visible = visible;
     }
 
     private static void SetStar(Control owner, bool visible, Vector2 position, int fontSize)
