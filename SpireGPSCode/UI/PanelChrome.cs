@@ -64,10 +64,11 @@ internal static class PanelChrome
             .ToArray();
 
         var previousVisibility = new Dictionary<CanvasItem, bool>();
+        bool minimizedApplied = false;
 
         void ApplyMinimized()
         {
-            if (minimized)
+            if (minimized && !minimizedApplied)
             {
                 previousVisibility.Clear();
                 foreach (var item in bodyItems)
@@ -75,15 +76,18 @@ internal static class PanelChrome
                     previousVisibility[item] = item.Visible;
                     item.Visible = false;
                 }
+
+                minimizedApplied = true;
             }
-            else
+            else if (!minimized && minimizedApplied)
             {
                 foreach (var item in bodyItems)
                 {
-                    item.Visible = previousVisibility.TryGetValue(item, out bool wasVisible)
-                        ? wasVisible
-                        : true;
+                    if (previousVisibility.TryGetValue(item, out bool wasVisible))
+                        item.Visible = wasVisible;
                 }
+
+                minimizedApplied = false;
             }
 
             minimizeButton.Text = minimized ? "+" : "−";
