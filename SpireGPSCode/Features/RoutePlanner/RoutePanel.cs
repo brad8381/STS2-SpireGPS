@@ -104,7 +104,9 @@ internal partial class RoutePanelLayer : CanvasLayer
 
         _autoSelectSuggested.SetPressedNoSignal(SpireGpsSettings.AutoHighlightPreferredRoute);
         _autoSelectNextNode.SetPressedNoSignal(SpireGpsSettings.AutoSelectNextNode);
-        _rushAutoTravel.SetPressedNoSignal(SpireGpsSettings.RushAutoTravel);
+        _rushAutoTravel.SetPressedNoSignal(
+            SpireGpsSettings.AutoSelectNextNode && SpireGpsSettings.RushAutoTravel);
+        _rushAutoTravel.Disabled = !SpireGpsSettings.AutoSelectNextNode;
         SetPrioritySelection(_priority1, SpireGpsSettings.RoutePriority1);
         SetPrioritySelection(_priority2, SpireGpsSettings.RoutePriority2);
         SetPrioritySelection(_priority3, SpireGpsSettings.RoutePriority3);
@@ -120,20 +122,43 @@ internal partial class RoutePanelLayer : CanvasLayer
             MouseFilter = Control.MouseFilterEnum.Stop,
             CustomMinimumSize = new Vector2(PanelWidth, 0)
         };
+        var panelStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0.035f, 0.04f, 0.05f, 0.96f),
+            BorderColor = new Color(0.30f, 0.72f, 0.90f, 0.9f),
+            BorderWidthLeft = 1,
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 14,
+            CornerRadiusTopRight = 14,
+            CornerRadiusBottomLeft = 14,
+            CornerRadiusBottomRight = 14,
+            ContentMarginLeft = 10,
+            ContentMarginRight = 10,
+            ContentMarginTop = 8,
+            ContentMarginBottom = 8
+        };
+        _panel.AddThemeStyleboxOverride("panel", panelStyle);
         AddChild(_panel);
 
         var outer = new VBoxContainer();
         outer.AddThemeConstantOverride("separation", 6);
         _panel.AddChild(outer);
 
+        var top = new HBoxContainer();
+        top.AddThemeConstantOverride("separation", 5);
+        outer.AddChild(top);
+
         var title = new Label
         {
             Text = "Route Planner",
-            HorizontalAlignment = HorizontalAlignment.Center
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
         title.AddThemeFontSizeOverride("font_size", 18);
-        outer.AddChild(title);
-        PanelDrag.Attach(title, _panel, () => _userPositioned = true);
+        top.AddChild(title);
 
         _status = new Label
         {
@@ -173,6 +198,7 @@ internal partial class RoutePanelLayer : CanvasLayer
             ButtonPressed = SpireGpsSettings.RushAutoTravel,
             TooltipText = "Immediately select the next suggested node when the map opens. Leave off to require confirmation.",
         };
+        _rushAutoTravel.Disabled = !SpireGpsSettings.AutoSelectNextNode;
         _rushAutoTravel.Toggled += OnRushAutoTravelToggled;
         travelRow.AddChild(_rushAutoTravel);
         outer.AddChild(travelRow);
@@ -225,6 +251,13 @@ internal partial class RoutePanelLayer : CanvasLayer
         };
         help.AddThemeFontSizeOverride("font_size", 11);
         outer.AddChild(help);
+
+        PanelChrome.Attach(
+            "route_planner",
+            _panel,
+            top,
+            outer,
+            () => _userPositioned = true);
     }
 
     private OptionButton CreatePriorityDropdown(string selected, int slot)
@@ -286,11 +319,18 @@ internal partial class RoutePanelLayer : CanvasLayer
     {
         SpireGpsSettings.AutoSelectNextNode = enabled;
         ModConfigBridge.SetValue("routeAutoSelectNextNode", enabled);
+        _rushAutoTravel.Disabled = !enabled;
 
-        if (enabled)
-            RouteAutoSelector.TrySelectNext(force: true);
-        else
+        if (!enabled)
+        {
+            SpireGpsSettings.RushAutoTravel = false;
+            _rushAutoTravel.SetPressedNoSignal(false);
+            ModConfigBridge.SetValue("routeRushAutoTravel", false);
             RouteAutoSelector.OnMapClosed();
+            return;
+        }
+
+        RouteAutoSelector.TrySelectNext(force: true);
     }
 
     private void OnRushAutoTravelToggled(bool enabled)
