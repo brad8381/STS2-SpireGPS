@@ -41,6 +41,7 @@ internal partial class BanterAccordionController : Node
         "Trigger Inspector",
         "Turn Guard",
         "Turn Timeline",
+        "UI Layout",
         "Wishlist"
     };
 
