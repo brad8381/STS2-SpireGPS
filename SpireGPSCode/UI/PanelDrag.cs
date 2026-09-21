@@ -4,7 +4,11 @@ namespace SpireGPS.UI;
 
 internal static class PanelDrag
 {
-    internal static void Attach(Control handle, Control panel, Action? onMoved = null)
+    internal static void Attach(
+        Control handle,
+        Control panel,
+        Action? onMoved = null,
+        Func<bool>? canDrag = null)
     {
         bool dragging = false;
 
@@ -20,6 +24,13 @@ internal static class PanelDrag
                 if (inputEvent is InputEventMouseButton button &&
                     button.ButtonIndex == MouseButton.Left)
                 {
+                    if (button.Pressed && canDrag is not null && !canDrag())
+                    {
+                        dragging = false;
+                        handle.AcceptEvent();
+                        return;
+                    }
+
                     dragging = button.Pressed;
                     handle.AcceptEvent();
                     return;
