@@ -132,14 +132,19 @@ internal partial class DeckXRayPanel : PanelContainer
         _content.AddThemeConstantOverride("separation", 5);
         AddChild(_content);
 
+        var top = new HBoxContainer();
+        top.AddThemeConstantOverride("separation", 5);
+        _content.AddChild(top);
+
         var title = new Label
         {
             Text = "Deck X-Ray",
-            HorizontalAlignment = HorizontalAlignment.Center
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
         title.AddThemeFontSizeOverride("font_size", 20);
-        _content.AddChild(title);
-        PanelDrag.Attach(title, this);
+        top.AddChild(title);
 
         _summary = new Label
         {
@@ -198,6 +203,8 @@ internal partial class DeckXRayPanel : PanelContainer
         };
         clear.Pressed += () => SetFilter(null);
         _content.AddChild(clear);
+
+        PanelChrome.Attach("deck_xray", this, top, _content);
 
         RefreshCounts();
     }
