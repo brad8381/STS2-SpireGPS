@@ -99,8 +99,9 @@ internal static class CompatibilityManager
             "Loaded Mods"
         };
 
-        var mods = ModManager.LoadedMods
-            .OrderBy(mod => mod.manifest?.name ?? mod.assembly?.GetName().Name ?? mod.pckName)
+        var mods = GetLoadedModsReflectively()
+            .Select(DescribeMod)
+            .OrderBy(mod => mod.name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         if (mods.Length == 0)
@@ -111,10 +112,8 @@ internal static class CompatibilityManager
         {
             foreach (var mod in mods)
             {
-                string name = mod.manifest?.name ?? mod.assembly?.GetName().Name ?? mod.pckName;
-                string version = mod.manifest?.version ?? "?";
-                string assembly = mod.assembly?.GetName().Name ?? "(no assembly)";
-                lines.Add($"  - {name} | v{version} | assembly={assembly} | loaded={mod.wasLoaded}");
+                lines.Add(
+                    $"  - {mod.name} | v{mod.version} | assembly={mod.assembly} | loaded={mod.loaded}");
             }
         }
 
@@ -157,7 +156,7 @@ internal static class CompatibilityManager
         lines.Add("  - Foreign Harmony owners identify mods patching the same game method.");
         lines.Add("  - A shared patch does not automatically mean there is a conflict.");
 
-        return string.Join(Environment.NewLine, lines);
+        return string.Join(System.Environment.NewLine, lines);
     }
 
     private static void AppendPatchReport(
