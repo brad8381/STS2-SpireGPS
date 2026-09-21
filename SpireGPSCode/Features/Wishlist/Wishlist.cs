@@ -51,8 +51,13 @@ internal static class WishlistService
         bool next = !IsCardWishlisted(card);
         LocalPreferences.Set(CardSection, card.Id.ToString(), next);
         SpireGpsToast.Show($"Wishlist: {(next ? "added" : "removed")} {card.Title}.");
-        RefreshAllStars();
-        RefreshOpenCardLibraries();
+        RefreshCardInstances(card);
+
+        // Only rebuild the library when the active filter actually depends on
+        // wishlist membership. Normal wishlist toggles should not refresh the
+        // whole card screen or disturb hover/sort state.
+        if (CardLibraryWishlistOnly)
+            RefreshOpenCardLibraries();
     }
 
     internal static void ToggleRelic(RelicModel relic)
@@ -67,10 +72,13 @@ internal static class WishlistService
     {
         // Remove the old free-floating label implementation if it exists.
         holder.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
+        holder.GetNodeOrNull<PanelContainer>(CardStarNodeName)?.QueueFree();
         holder.CardNode?.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
+        holder.CardNode?.GetNodeOrNull<PanelContainer>(CardStarNodeName)?.QueueFree();
 
+        Control owner = holder.CardNode is Control cardNode ? cardNode : holder;
         SetCardStar(
-            holder,
+            owner,
             SpireGpsSettings.WishlistEnabled && IsCardWishlisted(holder.CardModel));
     }
 
@@ -193,6 +201,25 @@ internal static class WishlistService
     internal static void ClearCardPressState(NCardHolder holder)
         => CurrentPressedActionField?.SetValue(holder, null);
 
+    private static void RefreshCardInstances(CardModel card)
+    {
+        if (Engine.GetMainLoop() is not SceneTree tree)
+            return;
+
+        foreach (var holder in FindNodes<NGridCardHolder>(tree.Root))
+        {
+            if (holder.CardModel?.Id == card.Id)
+                RefreshCardHolder(holder);
+        }
+
+        foreach (var merchant in FindNodes<NMerchantCard>(tree.Root))
+        {
+            var node = MerchantCardNodeField?.GetValue(merchant) as MegaCrit.Sts2.Core.Nodes.Cards.NCard;
+            if (node?.Model?.Id == card.Id)
+                RefreshMerchantCard(merchant);
+        }
+    }
+
     internal static void RefreshAllStars()
     {
         if (Engine.GetMainLoop() is not SceneTree tree)
@@ -262,63 +289,32 @@ internal static class WishlistService
 
     private static void SetCardStar(Control owner, bool visible)
     {
-        var badge = owner.GetNodeOrNull<PanelContainer>(CardStarNodeName);
-        if (badge is null)
+        var star = owner.GetNodeOrNull<Label>(CardStarNodeName);
+        if (star is null)
         {
-            badge = new PanelContainer
+            star = new Label
             {
                 Name = CardStarNodeName,
-                MouseFilter = Control.MouseFilterEnum.Ignore,
-                ZIndex = 140
-            };
-
-            var style = new StyleBoxFlat
-            {
-                BgColor = new Color(0.055f, 0.065f, 0.075f, 0.92f),
-                BorderColor = new Color("#F6C744"),
-                BorderWidthLeft = 1,
-                BorderWidthTop = 1,
-                BorderWidthRight = 1,
-                BorderWidthBottom = 1,
-                CornerRadiusTopLeft = 9,
-                CornerRadiusTopRight = 9,
-                CornerRadiusBottomLeft = 9,
-                CornerRadiusBottomRight = 9,
-                ContentMarginLeft = 3,
-                ContentMarginRight = 3,
-                ContentMarginTop = 1,
-                ContentMarginBottom = 2
-            };
-            badge.AddThemeStyleboxOverride("panel", style);
-
-            var star = new Label
-            {
                 Text = "★",
                 MouseFilter = Control.MouseFilterEnum.Ignore,
+                ZIndex = 140,
+                CustomMinimumSize = new Vector2(42f, 42f),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            star.AddThemeFontSizeOverride("font_size", 23);
+            star.AddThemeFontSizeOverride("font_size", 28);
             star.AddThemeColorOverride("font_color", new Color("#F6C744"));
-            star.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.85f));
-            star.AddThemeConstantOverride("shadow_offset_x", 1);
-            star.AddThemeConstantOverride("shadow_offset_y", 1);
-            badge.AddChild(star);
-            owner.AddChild(badge);
+            star.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.95f));
+            star.AddThemeConstantOverride("shadow_offset_x", 2);
+            star.AddThemeConstantOverride("shadow_offset_y", 2);
+            owner.AddChild(star);
         }
 
-        // Anchor to the grid holder rather than the animated card node. This
-        // keeps the badge attached to the bottom-right of each individual card
-        // across the library and deck layouts.
-        badge.AnchorLeft = 1f;
-        badge.AnchorRight = 1f;
-        badge.AnchorTop = 1f;
-        badge.AnchorBottom = 1f;
-        badge.OffsetLeft = -42f;
-        badge.OffsetRight = -7f;
-        badge.OffsetTop = -43f;
-        badge.OffsetBottom = -8f;
-        badge.Visible = visible;
+        // NCard uses a stable 300x422 local coordinate space. Keeping the star
+        // on the card node makes it follow hover/scale animation while placing
+        // it at the actual lower-right of the card frame.
+        star.Position = new Vector2(246f, 365f);
+        star.Visible = visible;
     }
 
     private static void SetStar(Control owner, bool visible, Vector2 position, int fontSize)
