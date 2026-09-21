@@ -219,7 +219,7 @@ internal static class GhostTurnPlannerService
         int position = GetEnemyScreenPosition(target);
 
         return position > 0
-            ? $"E{position} · {name}"
+            ? $"[{position}] {name}"
             : $"Enemy · {name}";
     }
 
