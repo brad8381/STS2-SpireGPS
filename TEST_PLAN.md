@@ -22,12 +22,16 @@ Run these first before the full regression:
 - Launch with Banter's Tweak's enabled.
 - Confirm no startup exception.
 - If ModConfig is installed, open Settings -> Mods.
-- Confirm Banter's modules are separate collapsible groups and appear A-Z.
+- Confirm there is one top-level Banter's Tweak's banner.
+- Expand it and confirm Banter modules appear A-Z as nested collapsible sections.
 - Confirm every implemented module has a setting.
 - Confirm Trading is OFF by default.
 - Toggle one harmless setting, restart, and confirm it persists.
 - Confirm Run Telemetry is enabled by default.
 - Start a run and confirm local telemetry creates `current_run.json` and a history file.
+- End or die in the run and confirm the in-game Run Recap appears.
+- Confirm the recap shows outcome, act/floors, run time, route breakdown, HP/Gold, deck/relic counts and score when available.
+- Confirm the final telemetry event is `RunEnded` with final run snapshot fields.
 - Confirm the integration manifest directory is created even when it is empty.
 
 ## 1. Turn Guard
@@ -112,7 +116,8 @@ Test several supported counter relics, including Brilliant Scarf.
 - Relic collection: right-click a visible relic to add/remove Wishlist.
 - Restart and confirm Wishlist persists.
 - Matching reward/shop card or relic shows gold star.
-- Wishlist stars appear as an attached badge on the bottom-right of the correct card in compendium and deck view.
+- Wishlist star appears at the bottom-right of the correct card in compendium and deck view.
+- Toggling a wishlist item while ★ Wishlisted only is OFF must not rebuild/re-sort/refresh the whole card grid.
 - Left-click inspect remains normal.
 
 ## 8. Synergy Hints
@@ -143,7 +148,8 @@ Test several supported counter relics, including Brilliant Scarf.
 - X-cost uses remaining planned energy.
 - Random/unknown outcomes remain unknown rather than consuming RNG.
 - Disable planning and confirm normal card play is untouched.
-- Drag Ghost Planner from its visible :: handle and confirm it moves.
+- Confirm Ghost Planner opens at a compact default size.
+- Drag Ghost Planner from its visible :: handle and confirm it moves even near the top edge.
 - Lock/unlock and minimize/expand controls work.
 - Open the deck view during combat: Ghost Planner hides until the deck closes.
 - Multiplayer:
