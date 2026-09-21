@@ -32,6 +32,7 @@
         <MakeDir Directories="$(ModsPath)$(AssemblyName)/" />
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsPath)$(AssemblyName)/" />
         <Copy SourceFiles="$(AssemblyName).json" DestinationFolder="$(ModsPath)$(AssemblyName)/" />
+        <Copy SourceFiles="THIRD_PARTY_NOTICES.md" DestinationFolder="$(ModsPath)$(AssemblyName)/" Condition="Exists('THIRD_PARTY_NOTICES.md')" />
         <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(ModsPath)$(AssemblyName)/" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
     </Target>
 </Project>
