@@ -25,6 +25,8 @@ Run these first before the full regression:
 - Confirm there is one top-level Banter's Tweak's banner.
 - Expand it and confirm Banter modules appear A-Z as nested collapsible sections.
 - Confirm every implemented module has a setting.
+- Under Compatibility, click Write Report and confirm compatibility_report.txt lists all loaded mods and any foreign Harmony patch owners/yield decisions.
+- Under UI Layout, test Expand All, Unlock All, and Reset Layout.
 - Confirm Trading is OFF by default.
 - Toggle one harmless setting, restart, and confirm it persists.
 - Confirm Run Telemetry is enabled by default.
@@ -116,7 +118,10 @@ Test several supported counter relics, including Brilliant Scarf.
 - Relic collection: right-click a visible relic to add/remove Wishlist.
 - Restart and confirm Wishlist persists.
 - Matching reward/shop card or relic shows gold star.
-- Wishlist star appears at the bottom-right of the correct card in compendium and deck view.
+- This build intentionally starts a fresh card Wishlist store; old QA card favourites are not migrated.
+- Add exactly two test favourites and confirm only those two cards show stars.
+- Wishlist star appears at the actual bottom-right of the rendered card in compendium and deck view.
+- Hover/scale a card and confirm the star moves/scales with that card.
 - Toggling a wishlist item while ★ Wishlisted only is OFF must not rebuild/re-sort/refresh the whole card grid.
 - Left-click inspect remains normal.
 
@@ -150,6 +155,8 @@ Test several supported counter relics, including Brilliant Scarf.
 - Disable planning and confirm normal card play is untouched.
 - Confirm Ghost Planner opens at a compact default size.
 - Drag Ghost Planner from its visible :: handle and confirm it moves even near the top edge.
+- Try to drag it into the STS2 top HUD: the shared safe-area clamp must keep the handle below the HUD.
+- For two enemies, target left then right and confirm plan labels use [1] and [2] in left-to-right screen order.
 - Lock/unlock and minimize/expand controls work.
 - Open the deck view during combat: Ghost Planner hides until the deck closes.
 - Multiplayer:
