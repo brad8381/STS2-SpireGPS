@@ -44,21 +44,45 @@ internal partial class BanterAccordionController : Node
         "Wishlist"
     };
 
-    private ulong _nextScanAt;
-
-    public override void _Process(double delta)
+    public override void _Ready()
     {
-        ulong now = Time.GetTicksMsec();
-        if (now < _nextScanAt)
+        if (GetTree() is not { } tree)
             return;
 
-        _nextScanAt = now + 350;
-
-        if (GetTree()?.Root is { } root)
-            Decorate(root);
+        tree.NodeAdded += OnNodeAdded;
+        Callable.From(() => DecorateExisting(tree.Root)).CallDeferred();
     }
 
-    private static void Decorate(Node node)
+    public override void _ExitTree()
+    {
+        if (GetTree() is { } tree)
+            tree.NodeAdded -= OnNodeAdded;
+    }
+
+    private static void OnNodeAdded(Node node)
+    {
+        Node? current = node;
+        while (current is not null)
+        {
+            if (current is VBoxContainer box &&
+                box.Name == $"Entries_{MainFile.ModId}")
+            {
+                Callable.From(() =>
+                {
+                    if (GodotObject.IsInstanceValid(box) &&
+                        !box.HasMeta("BantersAccordionReady"))
+                    {
+                        DecorateEntries(box);
+                    }
+                }).CallDeferred();
+                return;
+            }
+
+            current = current.GetParent();
+        }
+    }
+
+    private static void DecorateExisting(Node node)
     {
         if (node is VBoxContainer box &&
             box.Name == $"Entries_{MainFile.ModId}" &&
@@ -68,7 +92,7 @@ internal partial class BanterAccordionController : Node
         }
 
         foreach (Node child in node.GetChildren())
-            Decorate(child);
+            DecorateExisting(child);
     }
 
     private static void DecorateEntries(VBoxContainer box)
