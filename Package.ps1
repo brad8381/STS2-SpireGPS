@@ -20,7 +20,7 @@ try {
         $assemblyName = "BantersTweaks"
     }
 
-    Write-Host "== $assemblyName: build ($Configuration) =="
+    Write-Host "== ${assemblyName}: build ($Configuration) =="
     dotnet build ".\SpireGPS.csproj" -c $Configuration /p:InstallToGame=false
     if ($LASTEXITCODE -ne 0) {
         throw "Build failed with exit code $LASTEXITCODE."
