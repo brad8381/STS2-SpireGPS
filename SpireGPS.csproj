@@ -26,6 +26,10 @@
         <Error Text="Slay the Spire 2 data not found at path '$(Sts2DataDir)'" Condition="'$(Sts2DataDir)' == '' or !Exists('$(Sts2DataDir)')" />
     </Target>
 
+    <ItemGroup>
+        <ModAsset Include="Assets\**\*" />
+    </ItemGroup>
+
     <Target Name="CopyToModsFolderOnBuild" AfterTargets="PostBuildEvent" Condition="'$(InstallToGame)' == 'true'">
         <RemoveDir Directories="$(ModsPath)SpireGPS/" Condition="Exists('$(ModsPath)SpireGPS/')" />
         <RemoveDir Directories="$(ModsPath)$(AssemblyName)/" Condition="Exists('$(ModsPath)$(AssemblyName)/')" />
@@ -33,6 +37,11 @@
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsPath)$(AssemblyName)/" />
         <Copy SourceFiles="$(AssemblyName).json" DestinationFolder="$(ModsPath)$(AssemblyName)/" />
         <Copy SourceFiles="THIRD_PARTY_NOTICES.md" DestinationFolder="$(ModsPath)$(AssemblyName)/" Condition="Exists('THIRD_PARTY_NOTICES.md')" />
+        <Copy
+            SourceFiles="@(ModAsset)"
+            DestinationFiles="@(ModAsset->'$(ModsPath)$(AssemblyName)/%(Identity)')"
+            SkipUnchangedFiles="true"
+            Condition="'@(ModAsset)' != ''" />
         <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(ModsPath)$(AssemblyName)/" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
     </Target>
 </Project>
