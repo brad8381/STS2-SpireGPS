@@ -26,6 +26,10 @@ internal static class WishlistService
     private const string LegacyCardStarNodeName = "WishlistCardBadge";
     private const string CardStarNodeName = "WishlistCardStarV2";
     private const string LibraryFilterNodeName = "BantersWishlistOnly";
+    private const string WishlistIconRelativePath = "Assets/UI/Wishlist/wishlist_star_32.png";
+
+    private static Texture2D? _wishlistIcon;
+    private static bool _wishlistIconLoadAttempted;
 
     internal static bool CardLibraryWishlistOnly { get; private set; }
 
@@ -307,40 +311,80 @@ internal static class WishlistService
 
     private static void SetCardStar(Control owner, bool visible)
     {
-        var star = owner.GetNodeOrNull<Label>(CardStarNodeName);
+        // Clean up the previous text-glyph implementation when upgrading from
+        // a QA build in the same scene.
+        owner.GetNodeOrNull<Label>(CardStarNodeName)?.QueueFree();
+
+        var star = owner.GetNodeOrNull<TextureRect>(CardStarNodeName);
         if (star is null)
         {
-            star = new Label
+            star = new TextureRect
             {
                 Name = CardStarNodeName,
-                Text = "★",
                 MouseFilter = Control.MouseFilterEnum.Ignore,
                 ZIndex = 140,
-                CustomMinimumSize = new Vector2(42f, 42f),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered
             };
-            star.AddThemeFontSizeOverride("font_size", 28);
-            star.AddThemeColorOverride("font_color", new Color("#F6C744"));
-            star.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.95f));
-            star.AddThemeConstantOverride("shadow_offset_x", 2);
-            star.AddThemeConstantOverride("shadow_offset_y", 2);
             owner.AddChild(star);
         }
 
-        // The owner is NCard.Body (%CardContainer), which tracks the actual
-        // rendered card surface rather than the NCard root/holder layout rect.
-        // Anchor to its bottom-right so library scaling/hover animation carries
-        // the star with the card without guessing pixel coordinates.
+        star.Texture = GetWishlistIcon();
+
+        // Parent is NCard.Body (%CardContainer), so this follows the card's
+        // native hover/scale transform. Keep the badge tucked just inside the
+        // lower-right frame rather than floating outside the card.
         star.AnchorLeft = 1f;
         star.AnchorRight = 1f;
         star.AnchorTop = 1f;
         star.AnchorBottom = 1f;
-        star.OffsetLeft = -48f;
-        star.OffsetRight = -8f;
-        star.OffsetTop = -50f;
-        star.OffsetBottom = -10f;
-        star.Visible = visible;
+        star.OffsetLeft = -42f;
+        star.OffsetRight = -10f;
+        star.OffsetTop = -44f;
+        star.OffsetBottom = -12f;
+
+        star.Visible = visible && star.Texture is not null;
+    }
+
+    private static Texture2D? GetWishlistIcon()
+    {
+        if (_wishlistIconLoadAttempted)
+            return _wishlistIcon;
+
+        _wishlistIconLoadAttempted = true;
+
+        try
+        {
+            string? assemblyDirectory = Path.GetDirectoryName(typeof(WishlistService).Assembly.Location);
+            if (string.IsNullOrWhiteSpace(assemblyDirectory))
+                return null;
+
+            string path = Path.Combine(
+                assemblyDirectory,
+                WishlistIconRelativePath.Replace('/', Path.DirectorySeparatorChar));
+
+            if (!File.Exists(path))
+            {
+                MainFile.Logger.Warn($"Wishlist icon asset not found: {path}");
+                return null;
+            }
+
+            var image = new Image();
+            Error error = image.Load(path);
+            if (error != Error.Ok)
+            {
+                MainFile.Logger.Warn($"Wishlist icon could not be loaded ({error}): {path}");
+                return null;
+            }
+
+            _wishlistIcon = ImageTexture.CreateFromImage(image);
+            return _wishlistIcon;
+        }
+        catch (Exception ex)
+        {
+            MainFile.Logger.Warn($"Wishlist icon load failed: {ex.Message}");
+            return null;
+        }
     }
 
     private static void SetStar(Control owner, bool visible, Vector2 position, int fontSize)
