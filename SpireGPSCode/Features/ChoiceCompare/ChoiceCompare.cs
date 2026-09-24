@@ -449,16 +449,28 @@ internal partial class ChoiceCompareLayer : CanvasLayer
         foreach (var entry in entries)
             _columns.AddChild(BuildColumn(entry));
 
-        _panel.ResetSize();
-        if (!_userPositioned)
-            Callable.From(PositionPanel).CallDeferred();
+        // PanelContainer retains its previous explicit size when items are
+        // removed. Force it back to content size so 1/2/3 comparisons don't
+        // leave a giant empty panel after previously showing more items.
+        _panel.CustomMinimumSize = Vector2.Zero;
+        _panel.Size = Vector2.Zero;
+
+        Callable.From(() =>
+        {
+            _panel.ResetSize();
+            PanelDrag.ClampToViewport(_panel);
+
+            if (!_userPositioned)
+                PositionPanel();
+        }).CallDeferred();
     }
 
     private Control BuildColumn(CompareEntry entry)
     {
         var panel = new PanelContainer
         {
-            CustomMinimumSize = new Vector2(280f, 250f)
+            CustomMinimumSize = new Vector2(270f, 0f),
+            SizeFlagsVertical = Control.SizeFlags.ShrinkBegin
         };
 
         var style = new StyleBoxFlat
@@ -495,8 +507,7 @@ internal partial class ChoiceCompareLayer : CanvasLayer
         var body = new Label
         {
             Text = entry.Body,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
         };
         body.AddThemeFontSizeOverride("font_size", 13);
         box.AddChild(body);
@@ -516,8 +527,9 @@ internal partial class ChoiceCompareLayer : CanvasLayer
     {
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
         _panel.Position = new Vector2(
-            Math.Max(8f, (viewport.X - _panel.Size.X) * 0.5f),
-            90f);
+            Math.Max(12f, (viewport.X - _panel.Size.X) * 0.5f),
+            Math.Max(96f, (viewport.Y - _panel.Size.Y) * 0.18f));
+        PanelDrag.ClampToViewport(_panel);
     }
 }
 
