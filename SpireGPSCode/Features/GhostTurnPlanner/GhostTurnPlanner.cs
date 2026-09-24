@@ -46,17 +46,31 @@ internal static class GhostTurnPlannerService
     internal static CardModel? PendingCard => _pendingCard;
     internal static bool SharePlan => _sharePlan;
 
+    internal static void InitializeForRun()
+    {
+        EnsureNetwork();
+        Steps.Clear();
+        _pendingCard = null;
+        _active = false;
+        ClearRemotePlans();
+    }
+
     internal static void Attach(NCombatUi ui)
     {
         EnsureNetwork();
 
-        if (ui.GetNodeOrNull<GhostTurnPlannerPanel>(PanelName) is not null)
-            return;
-
-        ui.AddChild(new GhostTurnPlannerPanel
+        if (ui.GetNodeOrNull<GhostTurnPlannerPanel>(PanelName) is null)
         {
-            Name = PanelName
-        });
+            ui.AddChild(new GhostTurnPlannerPanel
+            {
+                Name = PanelName
+            });
+        }
+
+        // A player can enter combat slightly before another client has built
+        // its UI/handler. Ask everybody to resend their current plan so plans
+        // are not permanently one-way because of scene timing.
+        RequestPlans();
     }
 
     internal static void ResetForCombat()
@@ -64,6 +78,7 @@ internal static class GhostTurnPlannerService
         Steps.Clear();
         _pendingCard = null;
         _active = false;
+        ClearRemotePlans();
         BroadcastPlan();
         Changed?.Invoke();
     }
@@ -456,10 +471,13 @@ internal static class GhostTurnPlannerService
         {
             try { _netService.UnregisterMessageHandler<GhostPlanMessage>(HandleRemotePlan); }
             catch { }
+            try { _netService.UnregisterMessageHandler<GhostPlanRequestMessage>(HandlePlanRequest); }
+            catch { }
         }
 
         _netService = service;
         _netService.RegisterMessageHandler<GhostPlanMessage>(HandleRemotePlan);
+        _netService.RegisterMessageHandler<GhostPlanRequestMessage>(HandlePlanRequest);
         _handlerRegistered = true;
 
         _sharePlan = LocalPreferences.GetBool("ghost_turn_planner", "share", true);
@@ -482,6 +500,27 @@ internal static class GhostTurnPlannerService
         });
     }
 
+    private static void RequestPlans()
+    {
+        EnsureNetwork();
+
+        if (_netService is null ||
+            _netService.Type is not (NetGameType.Host or NetGameType.Client))
+        {
+            return;
+        }
+
+        _netService.SendMessage(new GhostPlanRequestMessage());
+    }
+
+    private static void HandlePlanRequest(GhostPlanRequestMessage message, ulong senderId)
+    {
+        if (_netService is null || senderId == _netService.NetId)
+            return;
+
+        BroadcastPlan();
+    }
+
     private static void HandleRemotePlan(GhostPlanMessage message, ulong senderId)
     {
         if (_netService is null || senderId == _netService.NetId)
@@ -489,6 +528,14 @@ internal static class GhostTurnPlannerService
 
         var layer = EnsureRemoteLayer();
         layer?.SetPlan(senderId, message.Summary);
+    }
+
+    private static void ClearRemotePlans()
+    {
+        if (Engine.GetMainLoop() is not SceneTree tree)
+            return;
+
+        tree.Root.GetNodeOrNull<GhostRemotePlanLayer>(RemoteLayerName)?.ClearAll();
     }
 
     private static GhostRemotePlanLayer? EnsureRemoteLayer()
@@ -503,6 +550,22 @@ internal static class GhostTurnPlannerService
         var layer = new GhostRemotePlanLayer { Name = RemoteLayerName };
         tree.Root.AddChild(layer);
         return layer;
+    }
+}
+
+public sealed class GhostPlanRequestMessage : INetMessage, IPacketSerializable
+{
+    public bool ShouldBroadcast => true;
+    public bool ShouldBuffer => false;
+    public NetTransferMode Mode => NetTransferMode.Reliable;
+    public LogLevel LogLevel => LogLevel.VeryDebug;
+
+    public void Serialize(PacketWriter writer)
+    {
+    }
+
+    public void Deserialize(PacketReader reader)
+    {
     }
 }
 
@@ -711,6 +774,7 @@ internal partial class GhostTurnPlannerPanel : PanelContainer
 internal partial class GhostRemotePlanLayer : CanvasLayer
 {
     private readonly Dictionary<ulong, Label> _labels = new();
+    private PanelContainer _panel = null!;
     private VBoxContainer _box = null!;
 
     public GhostRemotePlanLayer()
@@ -721,11 +785,12 @@ internal partial class GhostRemotePlanLayer : CanvasLayer
 
     public override void _Ready()
     {
-        var panel = new PanelContainer
+        _panel = new PanelContainer
         {
             Position = new Vector2(18f, 145f),
             MouseFilter = Control.MouseFilterEnum.Ignore,
-            CustomMinimumSize = new Vector2(340f, 0f)
+            CustomMinimumSize = new Vector2(340f, 0f),
+            Visible = false
         };
 
         var style = new StyleBoxFlat
@@ -745,11 +810,11 @@ internal partial class GhostRemotePlanLayer : CanvasLayer
             ContentMarginTop = 8,
             ContentMarginBottom = 8
         };
-        panel.AddThemeStyleboxOverride("panel", style);
+        _panel.AddThemeStyleboxOverride("panel", style);
 
         _box = new VBoxContainer();
-        panel.AddChild(_box);
-        AddChild(panel);
+        _panel.AddChild(_box);
+        AddChild(_panel);
     }
 
     internal void SetPlan(ulong senderId, string summary)
@@ -758,6 +823,8 @@ internal partial class GhostRemotePlanLayer : CanvasLayer
         {
             if (_labels.Remove(senderId, out var old) && GodotObject.IsInstanceValid(old))
                 old.QueueFree();
+
+            _panel.Visible = _labels.Count > 0;
             return;
         }
 
@@ -782,6 +849,20 @@ internal partial class GhostRemotePlanLayer : CanvasLayer
         catch { }
 
         label.Text = $"{name} - Ghost Plan\n{summary}";
+        _panel.Visible = true;
+    }
+
+    internal void ClearAll()
+    {
+        foreach (var label in _labels.Values)
+        {
+            if (GodotObject.IsInstanceValid(label))
+                label.QueueFree();
+        }
+
+        _labels.Clear();
+        if (GodotObject.IsInstanceValid(_panel))
+            _panel.Visible = false;
     }
 }
 
