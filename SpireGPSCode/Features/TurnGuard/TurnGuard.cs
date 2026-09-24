@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models.Powers;
+using MegaCrit.Sts2.Core.Models.Orbs;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.MonsterMoves.Intents;
 using MegaCrit.Sts2.Core.Nodes.Combat;
@@ -47,14 +48,29 @@ internal static class TurnGuardService
         if (pcs is null)
             return warnings;
 
-        var livingEnemies = player.Creature.CombatState?.Enemies
-            .Where(e => e.IsAlive)
-            .ToArray() ?? Array.Empty<Creature>();
-
-        // If every living enemy is guaranteed to die at the start of its turn
-        // before it can act, ending the turn is already the sensible action.
-        if (livingEnemies.Length > 0 && livingEnemies.All(WillDieBeforeActing))
+        var state = player.Creature.CombatState;
+        if (state is null)
             return warnings;
+
+        // A temporarily downed / reviving enemy (Test Subject is the obvious
+        // example) can remain in the combat state while not being hittable.
+        // There is nothing useful Turn Guard can protect at that moment, so
+        // do not block the game's End Turn flow.
+        var actionableEnemies = state.HittableEnemies
+            .Where(enemy => enemy.IsAlive)
+            .ToArray();
+
+        if (actionableEnemies.Length == 0)
+            return warnings;
+
+        // If deterministic effects that resolve before the enemies act will
+        // kill every currently actionable enemy, ending the turn is already
+        // safe. This includes Poison/Plague and guaranteed end-turn orb damage.
+        if (actionableEnemies.All(enemy =>
+                WillDieBeforeActing(player, enemy, actionableEnemies.Length)))
+        {
+            return warnings;
+        }
 
         var playableCards = pcs.Hand.Cards
             .Where(card =>
@@ -124,11 +140,16 @@ internal static class TurnGuardService
         try
         {
             var targets = state.PlayerCreatures;
-            foreach (var enemy in state.Enemies.Where(e => e.IsAlive))
+            var actionableEnemies = state.HittableEnemies
+                .Where(enemy => enemy.IsAlive)
+                .ToArray();
+
+            foreach (var enemy in actionableEnemies)
             {
-                // Poison/Plague lethal at turn start means this enemy never
-                // reaches its move, so its intent should not count as incoming.
-                if (WillDieBeforeActing(enemy))
+                // Deterministic end-turn/start-of-enemy-turn damage can remove
+                // this enemy before its attack. Do not report its intent as
+                // lethal incoming damage in that case.
+                if (WillDieBeforeActing(player, enemy, actionableEnemies.Length))
                     continue;
 
                 var monster = enemy.Monster;
@@ -152,7 +173,10 @@ internal static class TurnGuardService
         }
     }
 
-    private static bool WillDieBeforeActing(Creature enemy)
+    private static bool WillDieBeforeActing(
+        Player player,
+        Creature enemy,
+        int actionableEnemyCount)
     {
         try
         {
@@ -166,10 +190,28 @@ internal static class TurnGuardService
             var plague = enemy.Powers.FirstOrDefault(power =>
                 power.GetType().FullName == "PB.Powers.PlaguePower" ||
                 (power.GetType().Name == "PlaguePower" &&
-                 string.Equals(power.GetType().Assembly.GetName().Name, "PlagueBringer", StringComparison.OrdinalIgnoreCase)));
+                 string.Equals(
+                     power.GetType().Assembly.GetName().Name,
+                     "PlagueBringer",
+                     StringComparison.OrdinalIgnoreCase)));
 
             if (plague is not null && plague.Amount >= enemy.CurrentHp)
                 return true;
+
+            decimal guaranteedOrbDamage =
+                GetGuaranteedEndTurnOrbDamage(player, enemy, actionableEnemyCount);
+
+            if (guaranteedOrbDamage <= 0m)
+                return false;
+
+            // Orb damage is normal damage and can be absorbed by current Block.
+            // Keep this conservative: if the enemy has Intangible, do not try
+            // to predict the per-hit caps here.
+            if (enemy.GetPower<IntangiblePower>() is not null)
+                return false;
+
+            decimal effectiveEnemyHp = enemy.CurrentHp + enemy.Block;
+            return guaranteedOrbDamage >= effectiveEnemyHp;
         }
         catch (Exception ex)
         {
@@ -177,6 +219,38 @@ internal static class TurnGuardService
         }
 
         return false;
+    }
+
+    private static decimal GetGuaranteedEndTurnOrbDamage(
+        Player player,
+        Creature enemy,
+        int actionableEnemyCount)
+    {
+        var pcs = player.PlayerCombatState;
+        if (pcs is null || actionableEnemyCount <= 0 || !enemy.IsHittable)
+            return 0m;
+
+        decimal damage = 0m;
+
+        foreach (var orb in pcs.OrbQueue.Orbs)
+        {
+            switch (orb)
+            {
+                // Glass damages every hittable enemy, so its passive is
+                // deterministic regardless of enemy count.
+                case GlassOrb glass:
+                    damage += Math.Max(0m, glass.PassiveVal);
+                    break;
+
+                // Lightning chooses a random hittable enemy. It is only
+                // deterministic when exactly one enemy can currently be hit.
+                case LightningOrb lightning when actionableEnemyCount == 1:
+                    damage += Math.Max(0m, lightning.PassiveVal);
+                    break;
+            }
+        }
+
+        return damage;
     }
 
     private static void OnCombatStateChanged(CombatState state)
