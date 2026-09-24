@@ -25,11 +25,11 @@ internal static class WishlistService
     private const string StarNodeName = "WishlistStar";
     private const string LegacyCardStarNodeName = "WishlistCardBadge";
     private const string CardStarNodeName = "WishlistCardStarV2";
+    private const string CardStarFallbackNodeName = "WishlistCardStarFallbackV2";
     private const string LibraryFilterNodeName = "BantersWishlistOnly";
     private const string WishlistIconRelativePath = "Assets/UI/Wishlist/wishlist_star_32.png";
 
     private static Texture2D? _wishlistIcon;
-    private static bool _wishlistIconLoadAttempted;
 
     internal static bool CardLibraryWishlistOnly { get; private set; }
 
@@ -192,6 +192,9 @@ internal static class WishlistService
     internal static bool IsInsideCardLibrary(NGridCardHolder holder)
         => HasAncestor<NCardLibraryGrid>(holder);
 
+    internal static bool IsActualCardLibraryGrid(NCardLibraryGrid grid)
+        => HasAncestor<NCardLibrary>(grid);
+
     internal static bool IsInsideDeckView(NGridCardHolder holder)
         => HasAncestor<NDeckViewScreen>(holder);
 
@@ -315,6 +318,7 @@ internal static class WishlistService
         // a QA build in the same scene.
         owner.GetNodeOrNull<Label>(CardStarNodeName)?.QueueFree();
 
+        Texture2D? texture = GetWishlistIcon();
         var star = owner.GetNodeOrNull<TextureRect>(CardStarNodeName);
         if (star is null)
         {
@@ -329,11 +333,11 @@ internal static class WishlistService
             owner.AddChild(star);
         }
 
-        star.Texture = GetWishlistIcon();
+        star.Texture = texture;
 
-        // Parent is NCard.Body (%CardContainer), so this follows the card's
-        // native hover/scale transform. Keep the badge tucked just inside the
-        // lower-right frame rather than floating outside the card.
+        // Parent is normally NCard.Body (%CardContainer), so this follows the
+        // card's native hover/scale transform. Keep the badge just inside the
+        // lower-right frame.
         star.AnchorLeft = 1f;
         star.AnchorRight = 1f;
         star.AnchorTop = 1f;
@@ -342,16 +346,46 @@ internal static class WishlistService
         star.OffsetRight = -10f;
         star.OffsetTop = -44f;
         star.OffsetBottom = -12f;
+        star.Visible = visible && texture is not null;
 
-        star.Visible = visible && star.Texture is not null;
+        // Stable/Beta builds can differ in how mod assets are mounted. Never
+        // make the wishlist silently disappear just because the PNG could not
+        // be loaded: fall back to a normal glyph.
+        var fallback = owner.GetNodeOrNull<Label>(CardStarFallbackNodeName);
+        if (fallback is null)
+        {
+            fallback = new Label
+            {
+                Name = CardStarFallbackNodeName,
+                Text = "★",
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                ZIndex = 141,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            fallback.AddThemeFontSizeOverride("font_size", 25);
+            fallback.AddThemeColorOverride("font_color", new Color("#F6C744"));
+            fallback.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.9f));
+            fallback.AddThemeConstantOverride("shadow_offset_x", 2);
+            fallback.AddThemeConstantOverride("shadow_offset_y", 2);
+            owner.AddChild(fallback);
+        }
+
+        fallback.AnchorLeft = 1f;
+        fallback.AnchorRight = 1f;
+        fallback.AnchorTop = 1f;
+        fallback.AnchorBottom = 1f;
+        fallback.OffsetLeft = -42f;
+        fallback.OffsetRight = -10f;
+        fallback.OffsetTop = -44f;
+        fallback.OffsetBottom = -12f;
+        fallback.Visible = visible && texture is null;
     }
 
     private static Texture2D? GetWishlistIcon()
     {
-        if (_wishlistIconLoadAttempted)
+        if (_wishlistIcon is not null)
             return _wishlistIcon;
-
-        _wishlistIconLoadAttempted = true;
 
         try
         {
@@ -364,10 +398,7 @@ internal static class WishlistService
                 WishlistIconRelativePath.Replace('/', Path.DirectorySeparatorChar));
 
             if (!File.Exists(path))
-            {
-                MainFile.Logger.Warn($"Wishlist icon asset not found: {path}");
                 return null;
-            }
 
             var image = new Image();
             Error error = image.Load(path);
@@ -464,14 +495,39 @@ internal static class WishlistCardRightClickPatch
 internal static class WishlistGridCardReadyPatch
 {
     private static void Postfix(NGridCardHolder __instance)
-        => WishlistService.RefreshCardHolder(__instance);
+    {
+        // Card reward / event screens populate holders inside their own
+        // _Ready call. A decoration failure must never abort the vanilla loop
+        // and leave only 1-2 cards (or remove Skip/alternate choices).
+        Callable.From(() =>
+        {
+            try
+            {
+                if (GodotObject.IsInstanceValid(__instance))
+                    WishlistService.RefreshCardHolder(__instance);
+            }
+            catch (Exception ex)
+            {
+                MainFile.Logger.Warn($"Wishlist card decoration skipped: {ex.Message}");
+            }
+        }).CallDeferred();
+    }
 }
 
 [HarmonyPatch(typeof(NGridCardHolder), "UpdateCardModel")]
 internal static class WishlistGridCardReassignPatch
 {
     private static void Postfix(NGridCardHolder __instance)
-        => WishlistService.RefreshCardHolder(__instance);
+    {
+        try
+        {
+            WishlistService.RefreshCardHolder(__instance);
+        }
+        catch (Exception ex)
+        {
+            MainFile.Logger.Warn($"Wishlist card refresh skipped: {ex.Message}");
+        }
+    }
 }
 
 [HarmonyPatch(typeof(NClickableControl), nameof(NClickableControl._GuiInput))]
@@ -541,10 +597,17 @@ internal static class WishlistCardLibraryFilterPatch
                 method.Name == nameof(NCardLibraryGrid.FilterCards) &&
                 method.GetParameters().Length == 2);
 
-    private static void Prefix(ref Func<CardModel, bool> __0)
+    private static void Prefix(NCardLibraryGrid __instance, ref Func<CardModel, bool> __0)
     {
-        if (!SpireGpsSettings.WishlistEnabled || !WishlistService.CardLibraryWishlistOnly)
+        // NCardLibraryGrid can be reused by other screens across game
+        // branches/mods. Never let the wishlist-only filter leak into deck,
+        // draw/discard or card-selection screens.
+        if (!SpireGpsSettings.WishlistEnabled ||
+            !WishlistService.CardLibraryWishlistOnly ||
+            !WishlistService.IsActualCardLibraryGrid(__instance))
+        {
             return;
+        }
 
         var original = __0;
         __0 = card => original(card) && WishlistService.IsCardWishlisted(card);
