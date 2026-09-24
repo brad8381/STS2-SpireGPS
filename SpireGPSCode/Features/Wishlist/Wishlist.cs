@@ -355,7 +355,7 @@ internal static class WishlistService
             {
                 Name = CardStarNodeName,
                 MouseFilter = Control.MouseFilterEnum.Ignore,
-                ZIndex = 140,
+                ZIndex = 2,
                 ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                 StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered
             };
@@ -364,9 +364,9 @@ internal static class WishlistService
 
         star.Texture = texture;
 
-        // Parent is the full NCard, not the inner CardContainer. This keeps
-        // the badge with the card through hand hover, reward animations and
-        // transform/upgrade preview screens.
+        // Parent is the full NCard, not the inner CardContainer. Keep the
+        // badge only slightly above the card artwork; a huge Z index makes it
+        // punch through native hover-tip/tooltip UI rendered over the card.
         star.AnchorLeft = 1f;
         star.AnchorRight = 1f;
         star.AnchorTop = 1f;
@@ -388,7 +388,7 @@ internal static class WishlistService
                 Name = CardStarFallbackNodeName,
                 Text = "★",
                 MouseFilter = Control.MouseFilterEnum.Ignore,
-                ZIndex = 141,
+                ZIndex = 2,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -457,7 +457,7 @@ internal static class WishlistService
                 Name = StarNodeName,
                 Text = "★",
                 MouseFilter = Control.MouseFilterEnum.Ignore,
-                ZIndex = 100,
+                ZIndex = 2,
                 Position = position
             };
             star.AddThemeFontSizeOverride("font_size", fontSize);
