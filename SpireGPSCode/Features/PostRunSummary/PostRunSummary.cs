@@ -118,6 +118,13 @@ internal static class PostRunSummary
         button.Pressed += ShowLast;
 
         menu.AddChild(button);
+        button.Visible = !menu.SubmenuStack.SubmenusOpen;
+        menu.SubmenuStack.Connect(
+            NSubmenuStack.SignalName.StackModified,
+            Callable.From(() =>
+                button.Visible =
+                    GodotObject.IsInstanceValid(button) &&
+                    !menu.SubmenuStack.SubmenusOpen));
     }
 
     private static void ShowSnapshot(RunRecapSnapshot recap)
@@ -268,7 +275,7 @@ internal static class PostRunSummary
         dismiss.Pressed += Close;
 
         PanelChrome.Attach(
-            "post_run_summary",
+            "post_run_summary_v2",
             panel,
             top,
             outer);
