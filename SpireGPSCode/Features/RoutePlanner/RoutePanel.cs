@@ -160,6 +160,15 @@ internal partial class RoutePanelLayer : CanvasLayer
         title.AddThemeFontSizeOverride("font_size", 18);
         top.AddChild(title);
 
+        var share = new Button
+        {
+            Text = "Share",
+            FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Share the currently highlighted route with everyone in this multiplayer run."
+        };
+        share.Pressed += () => RouteSharingService.ShareCurrent();
+        top.AddChild(share);
+
         _status = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Center
