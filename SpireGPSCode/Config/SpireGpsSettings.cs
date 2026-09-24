@@ -34,6 +34,7 @@ internal static class SpireGpsSettings
     internal static bool TurnGuardWarnPlayableCards { get; set; } = true;
     internal static bool TurnGuardWarnEnergy { get; set; } = true;
     internal static bool TurnGuardWarnLethal { get; set; } = true;
+    internal static bool TurnGuardIgnoreAllTainted { get; set; } = true;
     internal static bool TurnGuardAutoUnready { get; set; } = true;
     internal static float TurnGuardConfirmSeconds { get; set; } = 2.5f;
 
@@ -113,6 +114,7 @@ internal static class SpireGpsSettings
             case "turnGuardWarnPlayableCards": TurnGuardWarnPlayableCards = Convert.ToBoolean(value); break;
             case "turnGuardWarnEnergy": TurnGuardWarnEnergy = Convert.ToBoolean(value); break;
             case "turnGuardWarnLethal": TurnGuardWarnLethal = Convert.ToBoolean(value); break;
+            case "turnGuardIgnoreAllTainted": TurnGuardIgnoreAllTainted = Convert.ToBoolean(value); break;
             case "turnGuardAutoUnready": TurnGuardAutoUnready = Convert.ToBoolean(value); break;
             case "turnGuardConfirmSeconds": TurnGuardConfirmSeconds = Convert.ToSingle(value); break;
 
