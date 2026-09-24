@@ -107,7 +107,7 @@ internal static class PostRunSummary
             OffsetRight = -48f,
             OffsetTop = -26f,
             OffsetBottom = 30f,
-            HorizontalAlignment = HorizontalAlignment.Right,
+            Alignment = HorizontalAlignment.Right,
             TooltipText = "Open the most recent Banter run recap."
         };
 
