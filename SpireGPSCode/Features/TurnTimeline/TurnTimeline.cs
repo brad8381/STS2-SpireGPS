@@ -241,7 +241,8 @@ internal partial class TurnTimelinePanel : PanelContainer
 
     public override void _Process(double delta)
     {
-        if (!SpireGpsSettings.TurnTimelineEnabled || UiContext.DeckViewOpen)
+        if (!SpireGpsSettings.TurnTimelineEnabled ||
+            !UiContext.IsCombatScreenCurrent())
         {
             Visible = false;
             return;
