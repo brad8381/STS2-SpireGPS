@@ -31,6 +31,9 @@ internal static class MultiplayerPingService
     private static INetGameService? _netService;
     private static bool _registered;
 
+    internal static void InitializeForRun()
+        => EnsureNetwork();
+
     internal static void AttachToCreature(NCreature creature)
     {
         // Always attach the lightweight input hook so ModConfig can enable or
