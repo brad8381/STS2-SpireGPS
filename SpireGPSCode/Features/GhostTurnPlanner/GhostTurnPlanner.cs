@@ -709,10 +709,10 @@ internal partial class GhostTurnPlannerPanel : PanelContainer
     {
         bool shouldShow =
             SpireGpsSettings.GhostTurnPlannerEnabled &&
-            !UiContext.DeckViewOpen;
+            UiContext.IsCombatScreenCurrent();
 
         Visible = shouldShow;
-        if (!SpireGpsSettings.GhostTurnPlannerEnabled)
+        if (!shouldShow)
             GhostTurnPlannerService.SetActive(false);
     }
 
@@ -817,6 +817,11 @@ internal partial class GhostRemotePlanLayer : CanvasLayer
         AddChild(_panel);
     }
 
+    public override void _Process(double delta)
+    {
+        _panel.Visible = _labels.Count > 0 && UiContext.IsCombatScreenCurrent();
+    }
+
     internal void SetPlan(ulong senderId, string summary)
     {
         if (string.IsNullOrWhiteSpace(summary))
@@ -824,7 +829,7 @@ internal partial class GhostRemotePlanLayer : CanvasLayer
             if (_labels.Remove(senderId, out var old) && GodotObject.IsInstanceValid(old))
                 old.QueueFree();
 
-            _panel.Visible = _labels.Count > 0;
+            _panel.Visible = _labels.Count > 0 && UiContext.IsCombatScreenCurrent();
             return;
         }
 
@@ -849,7 +854,7 @@ internal partial class GhostRemotePlanLayer : CanvasLayer
         catch { }
 
         label.Text = $"{name} - Ghost Plan\n{summary}";
-        _panel.Visible = true;
+        _panel.Visible = UiContext.IsCombatScreenCurrent();
     }
 
     internal void ClearAll()
