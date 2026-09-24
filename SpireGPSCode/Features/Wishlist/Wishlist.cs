@@ -3,6 +3,7 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.UI;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Relics;
@@ -77,31 +78,50 @@ internal static class WishlistService
 
     internal static void RefreshCardHolder(NGridCardHolder holder)
     {
-        // Remove the old free-floating label implementation if it exists.
+        // Remove the old free-floating implementations from QA builds.
         holder.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
         holder.GetNodeOrNull<Label>(LegacyCardStarNodeName)?.QueueFree();
         holder.GetNodeOrNull<PanelContainer>(LegacyCardStarNodeName)?.QueueFree();
 
         if (holder.CardNode is { } cardNode)
         {
-            cardNode.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
-            cardNode.GetNodeOrNull<Label>(LegacyCardStarNodeName)?.QueueFree();
-            cardNode.GetNodeOrNull<PanelContainer>(LegacyCardStarNodeName)?.QueueFree();
-
-            Control body = cardNode.Body;
-            body.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
-            body.GetNodeOrNull<Label>(LegacyCardStarNodeName)?.QueueFree();
-            body.GetNodeOrNull<PanelContainer>(LegacyCardStarNodeName)?.QueueFree();
-
-            SetCardStar(
-                body,
-                SpireGpsSettings.WishlistEnabled && IsCardWishlisted(holder.CardModel));
+            RefreshCardNode(cardNode);
             return;
         }
 
         SetCardStar(
             holder,
             SpireGpsSettings.WishlistEnabled && IsCardWishlisted(holder.CardModel));
+    }
+
+    internal static void RefreshCardNode(NCard cardNode)
+    {
+        if (!GodotObject.IsInstanceValid(cardNode))
+            return;
+
+        // v2 used CardContainer as the badge parent. That put the star around
+        // the portrait/type plaque rather than the actual lower-right corner.
+        // Remove any badge left on that inner container before attaching to
+        // the full NCard control.
+        if (cardNode.Body is { } body)
+        {
+            body.GetNodeOrNull<TextureRect>(CardStarNodeName)?.QueueFree();
+            body.GetNodeOrNull<Label>(CardStarFallbackNodeName)?.QueueFree();
+            body.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
+            body.GetNodeOrNull<Label>(LegacyCardStarNodeName)?.QueueFree();
+            body.GetNodeOrNull<PanelContainer>(LegacyCardStarNodeName)?.QueueFree();
+        }
+
+        cardNode.GetNodeOrNull<Label>(StarNodeName)?.QueueFree();
+        cardNode.GetNodeOrNull<Label>(LegacyCardStarNodeName)?.QueueFree();
+        cardNode.GetNodeOrNull<PanelContainer>(LegacyCardStarNodeName)?.QueueFree();
+
+        bool visible =
+            SpireGpsSettings.WishlistEnabled &&
+            cardNode.Visibility == ModelVisibility.Visible &&
+            IsCardWishlisted(cardNode.Model);
+
+        SetCardStar(cardNode, visible);
     }
 
     internal static void RefreshRelicCollectionEntry(NRelicCollectionEntry entry)
@@ -231,6 +251,12 @@ internal static class WishlistService
         if (Engine.GetMainLoop() is not SceneTree tree)
             return;
 
+        foreach (var cardNode in FindNodes<NCard>(tree.Root))
+        {
+            if (cardNode.Model?.Id == card.Id)
+                RefreshCardNode(cardNode);
+        }
+
         foreach (var holder in FindNodes<NGridCardHolder>(tree.Root))
         {
             if (holder.CardModel?.Id == card.Id)
@@ -249,6 +275,9 @@ internal static class WishlistService
     {
         if (Engine.GetMainLoop() is not SceneTree tree)
             return;
+
+        foreach (var cardNode in FindNodes<NCard>(tree.Root))
+            RefreshCardNode(cardNode);
 
         foreach (var holder in FindNodes<NGridCardHolder>(tree.Root))
             RefreshCardHolder(holder);
@@ -335,17 +364,17 @@ internal static class WishlistService
 
         star.Texture = texture;
 
-        // Parent is normally NCard.Body (%CardContainer), so this follows the
-        // card's native hover/scale transform. Keep the badge just inside the
-        // lower-right frame.
+        // Parent is the full NCard, not the inner CardContainer. This keeps
+        // the badge with the card through hand hover, reward animations and
+        // transform/upgrade preview screens.
         star.AnchorLeft = 1f;
         star.AnchorRight = 1f;
         star.AnchorTop = 1f;
         star.AnchorBottom = 1f;
-        star.OffsetLeft = -42f;
-        star.OffsetRight = -10f;
-        star.OffsetTop = -44f;
-        star.OffsetBottom = -12f;
+        star.OffsetLeft = -52f;
+        star.OffsetRight = -16f;
+        star.OffsetTop = -56f;
+        star.OffsetBottom = -20f;
         star.Visible = visible && texture is not null;
 
         // Stable/Beta builds can differ in how mod assets are mounted. Never
@@ -375,10 +404,10 @@ internal static class WishlistService
         fallback.AnchorRight = 1f;
         fallback.AnchorTop = 1f;
         fallback.AnchorBottom = 1f;
-        fallback.OffsetLeft = -42f;
-        fallback.OffsetRight = -10f;
-        fallback.OffsetTop = -44f;
-        fallback.OffsetBottom = -12f;
+        fallback.OffsetLeft = -52f;
+        fallback.OffsetRight = -16f;
+        fallback.OffsetTop = -56f;
+        fallback.OffsetBottom = -20f;
         fallback.Visible = visible && texture is null;
     }
 
@@ -441,6 +470,29 @@ internal static class WishlistService
 
         star.Position = position;
         star.Visible = visible;
+    }
+}
+
+[HarmonyPatch(typeof(NCard), nameof(NCard.UpdateVisuals))]
+internal static class WishlistAnyCardVisualPatch
+{
+    private static void Postfix(NCard __instance)
+    {
+        // UpdateVisuals is used by hand cards, deck/pile screens, reward
+        // cards and the large preview cards used for transform/upgrade UI.
+        // Decorating here keeps wishlist state live everywhere.
+        Callable.From(() =>
+        {
+            try
+            {
+                if (GodotObject.IsInstanceValid(__instance))
+                    WishlistService.RefreshCardNode(__instance);
+            }
+            catch (Exception ex)
+            {
+                MainFile.Logger.Warn($"Wishlist NCard refresh skipped: {ex.Message}");
+            }
+        }).CallDeferred();
     }
 }
 
