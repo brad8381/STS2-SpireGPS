@@ -186,6 +186,7 @@ internal static class ModConfigBridge
                 Toggle("turnGuardWarnPlayableCards", "Warn When Playable Cards Remain", true),
                 Toggle("turnGuardWarnEnergy", "Mention Remaining Energy With Playable Cards", true),
                 Toggle("turnGuardWarnLethal", "Warn About Potentially Lethal Incoming Damage", true),
+                Toggle("turnGuardIgnoreAllTainted", "Ignore Playable-card Warning When All Playable Cards Are Tainted", true),
                 Toggle("turnGuardAutoUnready", "Auto-unready If State Changes", true),
                 SliderRange("turnGuardConfirmSeconds", "Second-click Confirmation Window", 2.5f, 1f, 5f, 0.5f)),
 
@@ -401,6 +402,7 @@ internal static class ModConfigBridge
         Load("turnGuardWarnPlayableCards", true);
         Load("turnGuardWarnEnergy", true);
         Load("turnGuardWarnLethal", true);
+        Load("turnGuardIgnoreAllTainted", true);
         Load("turnGuardAutoUnready", true);
         Load("turnGuardConfirmSeconds", 2.5f);
 
