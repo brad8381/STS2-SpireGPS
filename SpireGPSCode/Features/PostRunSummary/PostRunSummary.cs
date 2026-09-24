@@ -122,9 +122,10 @@ internal static class PostRunSummary
         menu.SubmenuStack.Connect(
             NSubmenuStack.SignalName.StackModified,
             Callable.From(() =>
-                button.Visible =
-                    GodotObject.IsInstanceValid(button) &&
-                    !menu.SubmenuStack.SubmenusOpen));
+            {
+                if (GodotObject.IsInstanceValid(button))
+                    button.Visible = !menu.SubmenuStack.SubmenusOpen;
+            }));
     }
 
     private static void ShowSnapshot(RunRecapSnapshot recap)
