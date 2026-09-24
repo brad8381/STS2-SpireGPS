@@ -302,15 +302,33 @@ internal static class TriggerInspectorCardPatch
 {
     private static void Postfix(NGridCardHolder __instance)
     {
-        __instance.Hitbox.Connect(
-            NClickableControl.SignalName.Focused,
-            Callable.From<NClickableControl>(_ =>
-                TriggerInspectorService.FocusCard(__instance.CardModel, __instance)));
+        Callable.From(() =>
+        {
+            try
+            {
+                if (!GodotObject.IsInstanceValid(__instance) ||
+                    !GodotObject.IsInstanceValid(__instance.Hitbox) ||
+                    __instance.Hitbox.HasMeta("banter_trigger_inspector"))
+                {
+                    return;
+                }
 
-        __instance.Hitbox.Connect(
-            NClickableControl.SignalName.Unfocused,
-            Callable.From<NClickableControl>(_ =>
-                TriggerInspectorService.Unfocus(__instance)));
+                __instance.Hitbox.SetMeta("banter_trigger_inspector", true);
+                __instance.Hitbox.Connect(
+                    NClickableControl.SignalName.Focused,
+                    Callable.From<NClickableControl>(_ =>
+                        TriggerInspectorService.FocusCard(__instance.CardModel, __instance)));
+
+                __instance.Hitbox.Connect(
+                    NClickableControl.SignalName.Unfocused,
+                    Callable.From<NClickableControl>(_ =>
+                        TriggerInspectorService.Unfocus(__instance)));
+            }
+            catch (Exception ex)
+            {
+                MainFile.Logger.Warn($"Trigger Inspector card hook skipped: {ex.Message}");
+            }
+        }).CallDeferred();
     }
 }
 
