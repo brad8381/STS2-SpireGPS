@@ -712,7 +712,7 @@ internal partial class GhostTurnPlannerPanel : PanelContainer
             UiContext.IsCombatScreenCurrent();
 
         Visible = shouldShow;
-        if (!shouldShow)
+        if (!SpireGpsSettings.GhostTurnPlannerEnabled)
             GhostTurnPlannerService.SetActive(false);
     }
 
