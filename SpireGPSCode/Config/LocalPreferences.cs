@@ -33,6 +33,13 @@ internal static class LocalPreferences
         return value.VariantType == Variant.Type.Int ? (int)value.AsInt64() : fallback;
     }
 
+    internal static string GetString(string section, string key, string fallback)
+    {
+        EnsureLoaded();
+        Variant value = Config.GetValue(section, key, fallback);
+        return value.VariantType == Variant.Type.String ? value.AsString() : fallback;
+    }
+
     internal static Vector2 GetVector2(string section, string key, Vector2 fallback)
     {
         EnsureLoaded();
