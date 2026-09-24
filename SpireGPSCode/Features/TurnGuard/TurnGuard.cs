@@ -56,7 +56,26 @@ internal static class TurnGuardService
         if (livingEnemies.Length > 0 && livingEnemies.All(WillDieBeforeActing))
             return warnings;
 
-        bool hasPlayableCards = pcs.HasCardsToPlay();
+        var playableCards = pcs.Hand.Cards
+            .Where(card =>
+            {
+                try { return card.CanPlay(); }
+                catch { return false; }
+            })
+            .ToArray();
+
+        bool hasPlayableCards = playableCards.Length > 0;
+
+        // Tainted cards are still technically playable, but in the Infested
+        // Prism fight the player may intentionally end the turn rather than
+        // take the Tainted attack-damage penalty. Treat an all-Tainted
+        // playable hand as non-actionable for the playable-card reminder only.
+        if (hasPlayableCards &&
+            SpireGpsSettings.TurnGuardIgnoreAllTainted &&
+            playableCards.All(IsTainted))
+        {
+            hasPlayableCards = false;
+        }
 
         if (SpireGpsSettings.TurnGuardWarnPlayableCards && hasPlayableCards)
             warnings.Add("playable cards remain");
@@ -70,6 +89,29 @@ internal static class TurnGuardService
             warnings.Add($"{incoming} incoming damage may be lethal");
 
         return warnings;
+    }
+
+    private static bool IsTainted(MegaCrit.Sts2.Core.Models.CardModel card)
+    {
+        try
+        {
+            var affliction = card.Affliction;
+            if (affliction is null)
+                return false;
+
+            return string.Equals(
+                       affliction.GetType().Name,
+                       "Tainted",
+                       StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(
+                       affliction.Id.Entry,
+                       "TAINTED",
+                       StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static bool IsLethalIncoming(Player player, out int incoming)
