@@ -78,6 +78,12 @@ internal static class RoutePlannerService
             SelectedRoute = route;
     }
 
+    internal static void SetSelectedRoute(RouteInfo? route)
+        => SelectedRoute = route;
+
+    internal static RouteInfo? FindRoute(int index)
+        => _routes.FirstOrDefault(route => route.Index == index);
+
     internal static void Sort(RouteSortMode mode, bool descending)
     {
         CurrentSort = mode;
