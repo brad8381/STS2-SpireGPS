@@ -6,6 +6,8 @@ using MegaCrit.Sts2.Core.Runs;
 using SpireGPS.Compatibility;
 using SpireGPS.Config;
 using SpireGPS.Features.DrawingPalette;
+using SpireGPS.Features.GhostTurnPlanner;
+using SpireGPS.Features.MultiplayerPings;
 using SpireGPS.Features.RoutePlanner;
 using SpireGPS.Features.TurnGuard;
 using SpireGPS.Features.Trading;
@@ -54,6 +56,9 @@ public partial class MainFile : Node
         RunTelemetryService.StartRun(runState);
         DrawingPaletteService.ResetForRun();
         TradingService.InitializeForRun();
+        GhostTurnPlannerService.InitializeForRun();
+        MultiplayerPingService.InitializeForRun();
+        RouteSharingService.InitializeForRun();
         RefreshRoutes();
     }
 
