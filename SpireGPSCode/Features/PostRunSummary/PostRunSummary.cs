@@ -80,7 +80,7 @@ internal static class PostRunSummary
 
         var tween = panel.CreateTween();
         tween.TweenProperty(panel, "modulate:a", 0f, 0.18f);
-        tween.Finished += layer.QueueFree;
+        tween.TweenCallback(Callable.From(layer.QueueFree));
     }
 
     internal static void AttachMainMenuButton(NMainMenu menu)
