@@ -232,7 +232,7 @@ internal static class SynergyHintService
             chip = new Label
             {
                 Name = HintNodeName,
-                MouseFilter = Control.MouseFilterEnum.Stop,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
                 ZIndex = 102,
                 Position = position
             };
@@ -271,14 +271,36 @@ internal static class SynergyHintService
 internal static class SynergyGridCardReadyPatch
 {
     private static void Postfix(NGridCardHolder __instance)
-        => SynergyHintService.RefreshGridCard(__instance);
+    {
+        Callable.From(() =>
+        {
+            try
+            {
+                if (GodotObject.IsInstanceValid(__instance))
+                    SynergyHintService.RefreshGridCard(__instance);
+            }
+            catch (Exception ex)
+            {
+                MainFile.Logger.Warn($"Synergy card hint skipped: {ex.Message}");
+            }
+        }).CallDeferred();
+    }
 }
 
 [HarmonyPatch(typeof(NGridCardHolder), "UpdateCardModel")]
 internal static class SynergyGridCardReassignPatch
 {
     private static void Postfix(NGridCardHolder __instance)
-        => SynergyHintService.RefreshGridCard(__instance);
+    {
+        try
+        {
+            SynergyHintService.RefreshGridCard(__instance);
+        }
+        catch (Exception ex)
+        {
+            MainFile.Logger.Warn($"Synergy card refresh skipped: {ex.Message}");
+        }
+    }
 }
 
 [HarmonyPatch(typeof(NMerchantCard), "UpdateVisual")]
