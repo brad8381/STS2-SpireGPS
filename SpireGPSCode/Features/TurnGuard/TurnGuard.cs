@@ -262,8 +262,12 @@ internal static class TurnGuardService
         }
 
         var me = LocalContext.GetMe(state);
-        if (me is null || state.Players.Count < 2)
+        int livingPlayers = state.Players.Count(player => player.Creature.IsAlive);
+        if (me is null || livingPlayers < 2)
         {
+            // Once a teammate dies, the survivor is effectively playing solo
+            // for Turn Guard purposes. Do not auto-unready them based on a
+            // dead teammate's state transitions.
             ResetSnapshot();
             return;
         }
@@ -315,6 +319,46 @@ internal static class TurnGuardService
         _lastReady = false;
         _lastEnergy = 0;
         _lastHandHash = 0;
+    }
+}
+
+[HarmonyPatch(typeof(CombatManager), nameof(CombatManager.HandlePlayerDeath))]
+internal static class TurnGuardDeadPlayerReadyPatch
+{
+    private static void Postfix(Player player, ref Task __result)
+    {
+        __result = CompleteDeathHandling(__result, player);
+    }
+
+    private static async Task CompleteDeathHandling(Task original, Player player)
+    {
+        await original;
+
+        try
+        {
+            if (!SpireGpsSettings.TurnGuardEnabled ||
+                !CombatManager.Instance.IsInProgress ||
+                !player.Creature.IsDead ||
+                player.Creature.CombatState.CurrentSide != CombatSide.Player ||
+                CombatManager.Instance.IsPlayerReadyToEndTurn(player))
+            {
+                return;
+            }
+
+            // STS2 marks already-dead players ready when a new player turn
+            // starts, but a teammate can also die DURING the current player
+            // turn. In that case the dead player can remain in the ready-count
+            // and prevent the surviving player from ever advancing the turn.
+            // HandlePlayerDeath runs deterministically on each client, so mark
+            // that dead player ready locally after vanilla cleanup completes.
+            CombatManager.Instance.SetReadyToEndTurn(player, canBackOut: false);
+            MainFile.Logger.Info(
+                $"Turn Guard: marked dead teammate {player.NetId} ready so the surviving player can end turn.");
+        }
+        catch (Exception ex)
+        {
+            MainFile.Logger.Warn($"Turn Guard dead-player readiness fix skipped: {ex.Message}");
+        }
     }
 }
 
